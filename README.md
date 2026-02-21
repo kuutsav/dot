@@ -18,6 +18,10 @@ $ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
  108 dot
 ```
 
+> [!NOTE]
+> There are no plans to support MCP servers (use skills). Support for sub-agents will be added soon (mainly to test if local LLMs can make for good search agents).
+
+
 ## Setup
 
 ### Warning
