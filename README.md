@@ -149,6 +149,21 @@ Skills are reusable instruction packs loaded from:
 - Project: `.dot/skills/`
 - Global: `~/.dot/skills/`
 
+Each skill has a `SKILL.md` file with front matter:
+
+```markdown
+---
+name: my-skill
+description: Brief description of what this skill does
+---
+
+# My Skill
+
+Detailed instructions for the agent...
+```
+
+For skills with scripts, see [Agent Skills Documentation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
+
 ## Architecture
 
 ```text
