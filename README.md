@@ -171,8 +171,8 @@ UI (app.py)
 
 | Model | Provider | Thinking | Vision |
 | ----- | -------- | -------- | ------ |
-| `glm-4.7` | ZhiPu | Yes | Via fallback |
-| `glm-5` | ZhiPu | Yes | Via fallback |
+| `glm-4.7` | ZhiPu | Yes | No |
+| `glm-5` | ZhiPu | Yes | No |
 | `claude-sonnet-4.5` | GitHub Copilot | Yes | Yes |
 | `claude-opus-4.5` | GitHub Copilot | Yes | Yes |
 | `claude-sonnet-4.6` | GitHub Copilot | Yes | Yes |
