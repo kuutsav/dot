@@ -1,0 +1,385 @@
+from dot.context.skills import (
+    Skill,
+    _load_skill_from_dir,
+    _parse_frontmatter,
+    _validate_skill,
+    format_skills_for_prompt,
+    load_skills,
+)
+
+
+class TestParseFrontmatter:
+    def test_basic_frontmatter(self):
+        content = """---
+name: my-skill
+description: A test skill
+---
+# Content here
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == "my-skill"
+        assert result["description"] == "A test skill"
+
+    def test_no_frontmatter(self):
+        content = "# Just markdown\nNo frontmatter here"
+        result = _parse_frontmatter(content)
+
+        assert result == {}
+
+    def test_missing_closing_delimiter(self):
+        content = """---
+name: my-skill
+description: broken
+# No closing ---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result == {}
+
+    def test_quoted_values_double(self):
+        content = """---
+name: "quoted-name"
+description: "A quoted description"
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == "quoted-name"
+        assert result["description"] == "A quoted description"
+
+    def test_quoted_values_single(self):
+        content = """---
+name: 'single-quoted'
+description: 'Another description'
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == "single-quoted"
+        assert result["description"] == "Another description"
+
+    def test_empty_values(self):
+        content = """---
+name:
+description:
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == ""
+        assert result["description"] == ""
+
+    def test_comments_ignored(self):
+        content = """---
+# This is a comment
+name: my-skill
+# Another comment
+description: test
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == "my-skill"
+        assert result["description"] == "test"
+        assert "#" not in result.get("name", "")
+
+    def test_colon_in_value(self):
+        content = """---
+name: my-skill
+description: This has: a colon in it
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["description"] == "This has: a colon in it"
+
+    def test_whitespace_handling(self):
+        content = """---
+  name:   spaced-skill\x20\x20
+  description:   Lots of spaces\x20\x20\x20
+---
+"""
+        result = _parse_frontmatter(content)
+
+        assert result["name"] == "spaced-skill"
+        assert result["description"] == "Lots of spaces"
+
+
+class TestValidateSkill:
+    def test_valid_skill(self):
+        warnings = _validate_skill("my-skill", "A valid description", "my-skill", "/path/SKILL.md")
+
+        assert warnings == []
+
+    def test_name_mismatch(self):
+        warnings = _validate_skill("skill-name", "Description", "different-dir", "/path/SKILL.md")
+
+        assert len(warnings) == 1
+        assert "does not match directory" in warnings[0].message
+
+    def test_name_too_long(self):
+        long_name = "a" * 65
+        warnings = _validate_skill(long_name, "Description", long_name, "/path/SKILL.md")
+
+        assert any("exceeds 64 characters" in w.message for w in warnings)
+
+    def test_name_uppercase_invalid(self):
+        warnings = _validate_skill("MySkill", "Description", "MySkill", "/path/SKILL.md")
+
+        assert any("lowercase" in w.message for w in warnings)
+
+    def test_name_special_chars_invalid(self):
+        warnings = _validate_skill("my_skill", "Description", "my_skill", "/path/SKILL.md")
+
+        assert any("lowercase a-z, 0-9, hyphens only" in w.message for w in warnings)
+
+    def test_name_starts_with_hyphen(self):
+        warnings = _validate_skill("-skill", "Description", "-skill", "/path/SKILL.md")
+
+        assert any("start or end with hyphen" in w.message for w in warnings)
+
+    def test_name_ends_with_hyphen(self):
+        warnings = _validate_skill("skill-", "Description", "skill-", "/path/SKILL.md")
+
+        assert any("start or end with hyphen" in w.message for w in warnings)
+
+    def test_name_consecutive_hyphens(self):
+        warnings = _validate_skill("my--skill", "Description", "my--skill", "/path/SKILL.md")
+
+        assert any("consecutive hyphens" in w.message for w in warnings)
+
+    def test_empty_description(self):
+        warnings = _validate_skill("my-skill", "", "my-skill", "/path/SKILL.md")
+
+        assert any("description is required" in w.message for w in warnings)
+
+    def test_whitespace_only_description(self):
+        warnings = _validate_skill("my-skill", "   ", "my-skill", "/path/SKILL.md")
+
+        assert any("description is required" in w.message for w in warnings)
+
+    def test_description_too_long(self):
+        long_desc = "a" * 1025
+        warnings = _validate_skill("my-skill", long_desc, "my-skill", "/path/SKILL.md")
+
+        assert any("exceeds 1024 characters" in w.message for w in warnings)
+
+    def test_multiple_errors(self):
+        warnings = _validate_skill("MY--SKILL-", "", "wrong-dir", "/path/SKILL.md")
+
+        assert len(warnings) >= 3
+
+
+class TestLoadSkillFromDir:
+    def test_load_valid_skill(self, tmp_path):
+        skill_dir = tmp_path / "my-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: my-skill
+description: A test skill
+---
+# Skill content
+""")
+
+        skill, warnings = _load_skill_from_dir(skill_dir)
+
+        assert skill is not None
+        assert skill.name == "my-skill"
+        assert skill.description == "A test skill"
+        assert warnings == []
+
+    def test_no_skill_file(self, tmp_path):
+        skill_dir = tmp_path / "empty-dir"
+        skill_dir.mkdir()
+
+        skill, warnings = _load_skill_from_dir(skill_dir)
+
+        assert skill is None
+        assert warnings == []
+
+    def test_skill_without_description_returns_none(self, tmp_path):
+        skill_dir = tmp_path / "bad-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+name: bad-skill
+---
+# No description
+""")
+
+        skill, warnings = _load_skill_from_dir(skill_dir)
+
+        assert skill is None
+        assert any("description is required" in w.message for w in warnings)
+
+    def test_uses_dir_name_as_fallback(self, tmp_path):
+        skill_dir = tmp_path / "fallback-skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("""---
+description: Uses directory name
+---
+""")
+
+        skill, _warnings = _load_skill_from_dir(skill_dir)
+
+        assert skill is not None
+        assert skill.name == "fallback-skill"
+
+
+class TestLoadSkills:
+    def test_loads_local_and_global_unique_skills(self, tmp_path, monkeypatch):
+        repo = tmp_path / "repo"
+        local_skills_dir = repo / ".dot" / "skills"
+        local_skill_dir = local_skills_dir / "local-skill"
+        local_skill_dir.mkdir(parents=True)
+        (local_skill_dir / "SKILL.md").write_text("""---
+name: local-skill
+description: Local skill
+---
+""")
+
+        global_dir = tmp_path / "global"
+        global_skills_dir = global_dir / "skills"
+        global_skill_dir = global_skills_dir / "global-skill"
+        global_skill_dir.mkdir(parents=True)
+        (global_skill_dir / "SKILL.md").write_text("""---
+name: global-skill
+description: Global skill
+---
+""")
+
+        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+
+        result = load_skills(str(repo))
+
+        assert {s.name for s in result.skills} == {"local-skill", "global-skill"}
+        assert result.warnings == []
+
+    def test_local_overrides_global_name_collision(self, tmp_path, monkeypatch):
+        repo = tmp_path / "repo"
+        local_skill_dir = repo / ".dot" / "skills" / "shared-skill"
+        local_skill_dir.mkdir(parents=True)
+        (local_skill_dir / "SKILL.md").write_text("""---
+name: shared-skill
+description: Local version
+---
+""")
+
+        global_dir = tmp_path / "global"
+        global_skill_dir = global_dir / "skills" / "shared-skill"
+        global_skill_dir.mkdir(parents=True)
+        (global_skill_dir / "SKILL.md").write_text("""---
+name: shared-skill
+description: Global version
+---
+""")
+
+        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+
+        result = load_skills(str(repo))
+
+        assert len(result.skills) == 1
+        assert result.skills[0].name == "shared-skill"
+        assert result.skills[0].file_path == str(local_skill_dir / "SKILL.md")
+        assert any("name collision" in w.message for w in result.warnings)
+
+    def test_empty_when_no_skill_directories(self, tmp_path, monkeypatch):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        global_dir = tmp_path / "global"
+
+        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+
+        result = load_skills(str(repo))
+
+        assert result.skills == []
+        assert result.warnings == []
+
+    def test_invalid_skill_excluded_and_warning_returned(self, tmp_path, monkeypatch):
+        repo = tmp_path / "repo"
+        invalid_skill_dir = repo / ".dot" / "skills" / "invalid-skill"
+        invalid_skill_dir.mkdir(parents=True)
+        (invalid_skill_dir / "SKILL.md").write_text("""---
+name: invalid-skill
+---
+# missing description
+""")
+
+        global_dir = tmp_path / "global"
+        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+
+        result = load_skills(str(repo))
+
+        assert result.skills == []
+        assert any("description is required" in w.message for w in result.warnings)
+
+    def test_uses_directory_name_when_name_missing_in_frontmatter(self, tmp_path, monkeypatch):
+        repo = tmp_path / "repo"
+        skill_dir = repo / ".dot" / "skills" / "fallback-name"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("""---
+description: Uses directory fallback
+---
+""")
+
+        global_dir = tmp_path / "global"
+        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+
+        result = load_skills(str(repo))
+
+        assert len(result.skills) == 1
+        assert result.skills[0].name == "fallback-name"
+        assert result.warnings == []
+
+
+class TestFormatSkillsForPrompt:
+    def test_empty_skills(self):
+        result = format_skills_for_prompt([])
+
+        assert result == ""
+
+    def test_single_skill(self):
+        skills = [
+            Skill(
+                name="test-skill",
+                description="A test skill",
+                file_path="/path/to/SKILL.md",
+                base_dir="/path/to",
+            )
+        ]
+
+        result = format_skills_for_prompt(skills)
+
+        assert "# Skills" in result
+        assert "<available_skills>" in result
+        assert "<name>test-skill</name>" in result
+        assert "<description>A test skill</description>" in result
+        assert "<location>/path/to/SKILL.md</location>" in result
+        assert "</available_skills>" in result
+
+    def test_escapes_xml_chars(self):
+        skills = [
+            Skill(
+                name="test-skill",
+                description='Uses <angle> & "quotes"',
+                file_path="/path/to/SKILL.md",
+                base_dir="/path/to",
+            )
+        ]
+
+        result = format_skills_for_prompt(skills)
+
+        assert "&lt;angle&gt;" in result
+        assert "&amp;" in result
+        assert "&quot;quotes&quot;" in result
+
+    def test_multiple_skills(self):
+        skills = [
+            Skill(name="skill-a", description="First", file_path="/a/SKILL.md", base_dir="/a"),
+            Skill(name="skill-b", description="Second", file_path="/b/SKILL.md", base_dir="/b"),
+        ]
+
+        result = format_skills_for_prompt(skills)
+
+        assert "<name>skill-a</name>" in result
+        assert "<name>skill-b</name>" in result

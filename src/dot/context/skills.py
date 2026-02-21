@@ -1,0 +1,217 @@
+"""
+Skills discovery and loading.
+
+Skills are directories containing a SKILL.md file with frontmatter.
+They provide specialized instructions that the model can read on-demand.
+
+Discovery locations:
+1. Global: ~/.dot/skills/
+2. Project: <cwd>/.dot/skills/
+"""
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from dot import CONFIG_DIR_NAME, get_config_dir
+
+from .shared import escape_xml
+
+MAX_NAME_LENGTH = 64
+MAX_DESCRIPTION_LENGTH = 1024
+
+
+@dataclass
+class Skill:
+    name: str
+    description: str
+    file_path: str
+    base_dir: str
+
+
+@dataclass
+class SkillWarning:
+    skill_path: str
+    message: str
+
+
+@dataclass
+class LoadSkillsResult:
+    skills: list[Skill]
+    warnings: list[SkillWarning]
+
+
+def _parse_frontmatter(content: str) -> dict[str, Any]:
+    if not content.startswith("---"):
+        return {}
+
+    end_match = re.search(r"\n---\s*\n", content[3:])
+    if not end_match:
+        return {}
+
+    frontmatter_text = content[3 : end_match.start() + 3]
+
+    result: dict[str, Any] = {}
+    for line in frontmatter_text.split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" in line:
+            key, _, value = line.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if value and value[0] in ('"', "'") and value[-1] == value[0]:
+                value = value[1:-1]
+            result[key] = value
+
+    return result
+
+
+def _validate_skill(
+    name: str, description: str, parent_dir_name: str, file_path: str
+) -> list[SkillWarning]:
+    warnings: list[SkillWarning] = []
+
+    if name != parent_dir_name:
+        warnings.append(
+            SkillWarning(file_path, f'name "{name}" does not match directory "{parent_dir_name}"')
+        )
+
+    if len(name) > MAX_NAME_LENGTH:
+        warnings.append(SkillWarning(file_path, f"name exceeds {MAX_NAME_LENGTH} characters"))
+
+    if not re.match(r"^[a-z0-9-]+$", name):
+        warnings.append(SkillWarning(file_path, "name must be lowercase a-z, 0-9, hyphens only"))
+
+    if name.startswith("-") or name.endswith("-"):
+        warnings.append(SkillWarning(file_path, "name must not start or end with hyphen"))
+
+    if "--" in name:
+        warnings.append(SkillWarning(file_path, "name must not contain consecutive hyphens"))
+
+    if not description or not description.strip():
+        warnings.append(SkillWarning(file_path, "description is required"))
+
+    if len(description) > MAX_DESCRIPTION_LENGTH:
+        warnings.append(
+            SkillWarning(file_path, f"description exceeds {MAX_DESCRIPTION_LENGTH} characters")
+        )
+
+    return warnings
+
+
+def _load_skill_from_dir(skill_dir: Path) -> tuple[Skill | None, list[SkillWarning]]:
+    skill_file = skill_dir / "SKILL.md"
+    if not skill_file.is_file():
+        return None, []
+
+    warnings: list[SkillWarning] = []
+    file_path = str(skill_file)
+
+    try:
+        content = skill_file.read_text(encoding="utf-8")
+        frontmatter = _parse_frontmatter(content)
+
+        parent_dir_name = skill_dir.name
+        name = frontmatter.get("name") or parent_dir_name
+        description = frontmatter.get("description", "")
+
+        warnings = _validate_skill(name, description, parent_dir_name, file_path)
+
+        if not description or not description.strip():
+            return None, warnings
+
+        skill = Skill(
+            name=name, description=description, file_path=file_path, base_dir=str(skill_dir)
+        )
+        return skill, warnings
+
+    except Exception as e:
+        return None, [SkillWarning(file_path, str(e))]
+
+
+def _load_skills_from_dir(directory: Path) -> LoadSkillsResult:
+    skills: list[Skill] = []
+    warnings: list[SkillWarning] = []
+
+    if not directory.exists():
+        return LoadSkillsResult(skills=skills, warnings=warnings)
+
+    try:
+        for entry in directory.iterdir():
+            if entry.name.startswith("."):
+                continue
+            if not entry.is_dir():
+                continue
+
+            skill, skill_warnings = _load_skill_from_dir(entry)
+            warnings.extend(skill_warnings)
+            if skill:
+                skills.append(skill)
+
+    except Exception:
+        pass
+
+    return LoadSkillsResult(skills=skills, warnings=warnings)
+
+
+def load_skills(cwd: str | None = None) -> LoadSkillsResult:
+    """
+    Load skills from global and project locations.
+
+    Discovery:
+    1. <cwd>/.dot/skills/ - each subdirectory with SKILL.md is a skill
+    2. ~/.dot/skills/ - each subdirectory with SKILL.md is a skill
+
+    Local skills take precedence over global skills with the same name.
+    """
+    resolved_cwd = Path(cwd) if cwd else Path.cwd()
+    resolved_cwd = resolved_cwd.resolve()
+
+    skill_map: dict[str, Skill] = {}
+    all_warnings: list[SkillWarning] = []
+
+    def add_skills(result: LoadSkillsResult) -> None:
+        all_warnings.extend(result.warnings)
+        for skill in result.skills:
+            if skill.name in skill_map:
+                all_warnings.append(
+                    SkillWarning(
+                        skill.file_path,
+                        f'name collision: "{skill.name}" already loaded '
+                        f"from {skill_map[skill.name].file_path}",
+                    )
+                )
+            else:
+                skill_map[skill.name] = skill
+
+    add_skills(_load_skills_from_dir(resolved_cwd / CONFIG_DIR_NAME / "skills"))
+    add_skills(_load_skills_from_dir(get_config_dir() / "skills"))
+
+    return LoadSkillsResult(skills=list(skill_map.values()), warnings=all_warnings)
+
+
+def format_skills_for_prompt(skills: list[Skill]) -> str:
+    if not skills:
+        return ""
+
+    lines = [
+        "# Skills",
+        "",
+        "The following skills provide specialized instructions for specific tasks.",
+        "Use the read tool to load a skill's file when the task matches its description.",
+        "",
+        "<available_skills>",
+    ]
+
+    for skill in skills:
+        lines.append("<skill>")
+        lines.append(f"<name>{escape_xml(skill.name)}</name>")
+        lines.append(f"<description>{escape_xml(skill.description)}</description>")
+        lines.append(f"<location>{escape_xml(skill.file_path)}</location>")
+        lines.append("</skill>")
+
+    lines.append("</available_skills>")
+
+    return "\n".join(lines)

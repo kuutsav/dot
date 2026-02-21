@@ -1,0 +1,515 @@
+from __future__ import annotations
+
+import os
+import re
+from collections.abc import Callable
+from typing import TYPE_CHECKING, ClassVar
+
+from textual import events
+from textual.app import ComposeResult
+from textual.binding import Binding
+from textual.containers import Vertical
+from textual.message import Message
+from textual.widgets import TextArea
+
+from .autocomplete import (
+    DEFAULT_COMMANDS,
+    AutocompleteProvider,
+    FilePathProvider,
+    SlashCommand,
+    SlashCommandProvider,
+)
+from .floating_list import ListItem
+from .path_complete import PathComplete
+
+if TYPE_CHECKING:
+    pass
+
+
+_PASTE_LINE_THRESHOLD = 5
+_PASTE_CHAR_THRESHOLD = 500
+_PASTE_MARKER_RE = re.compile(r"\[paste #(\d+)(?: (\+\d+ lines|\d+ chars))?\]")
+
+
+class DotTextArea(TextArea):
+    def __init__(self, on_paste: Callable[[str], str], **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._on_paste_transform = on_paste
+
+    async def _on_paste(self, event: events.Paste) -> None:
+        # Prevent TextArea._on_paste from also running on the original event.
+        event.prevent_default()
+        transformed = self._on_paste_transform(event.text)
+        await super()._on_paste(events.Paste(transformed))
+
+
+class InputBox(Vertical):
+    """
+    Multi-line input with inline completion support.
+
+    - Enter: Submit
+    - Shift+Enter/Ctrl+J: Newline
+    - Up/Down: History navigation when at top/bottom, or list navigation when completing
+    - @ triggers file search (inline)
+    - / triggers slash commands (inline, at start of input)
+    - Escape: Cancel completion or clear input
+
+    The FloatingList is managed externally (at app level) but controlled
+    via messages from InputBox.
+    """
+
+    BINDINGS: ClassVar[list] = [
+        Binding("enter", "submit", "Send", priority=True),
+        Binding("ctrl+j,shift+enter", "newline", "New line", priority=True),
+        Binding("escape", "cancel", "Cancel", priority=True),
+        Binding("up", "cursor_up", "Up", priority=True),
+        Binding("down", "cursor_down", "Down", priority=True),
+        Binding("tab", "tab_complete", "Tab complete", priority=True),
+    ]
+
+    DEFAULT_CSS = """
+    InputBox {
+        height: auto;
+        min-height: 3;
+        border-top: solid grey;
+        border-bottom: solid grey;
+    }
+
+    InputBox .input-textarea {
+        width: 1fr;
+        height: auto;
+        border: none;
+        background: transparent;
+        padding: 0 1;
+    }
+
+    InputBox .input-textarea:focus {
+        border: none;
+    }
+    """
+
+    def __init__(
+        self, cwd: str | None = None, id: str | None = None, classes: str | None = None
+    ) -> None:
+        super().__init__(id=id, classes=classes)
+        self._cwd = cwd or os.getcwd()
+        self._history: list[str] = []
+        self._history_index: int = -1
+        self._history_temp: str = ""
+
+        # Autocomplete providers
+        self._slash_provider = SlashCommandProvider(DEFAULT_COMMANDS.copy())
+        self._file_provider = FilePathProvider(self._cwd)
+        self._providers: list[AutocompleteProvider] = [self._slash_provider, self._file_provider]
+
+        # Active completion state (the list itself is external)
+        self._active_provider: AutocompleteProvider | None = None
+        self._completion_prefix: str = ""
+        self._is_completing: bool = False
+        self._autocomplete_enabled: bool = True
+        self._suppress_autocomplete: int = 0  # Skip N autocomplete triggers
+
+        # Tab path completion state
+        self._path_complete = PathComplete()
+        self._tab_completing: bool = False
+        self._tab_start_col: int = 0
+        self._tab_base_fragment: str = ""
+
+        # Large paste compaction
+        self._pastes: dict[int, str] = {}
+        self._paste_counter: int = 0
+
+    def compose(self) -> ComposeResult:
+        yield DotTextArea(self._transform_paste, id="input-textarea", classes="input-textarea")
+
+    def on_mount(self) -> None:
+        textarea = self.query_one("#input-textarea", TextArea)
+        textarea.cursor_blink = False
+        textarea.show_line_numbers = False
+        textarea.highlight_cursor_line = False
+
+    @property
+    def text(self) -> str:
+        return self.query_one("#input-textarea", TextArea).text
+
+    @property
+    def is_completing(self) -> bool:
+        return self._is_completing
+
+    @property
+    def is_tab_completing(self) -> bool:
+        return self._tab_completing
+
+    def clear(self, *, reset_pastes: bool = True) -> None:
+        self.query_one("#input-textarea", TextArea).clear()
+        if reset_pastes:
+            self._reset_pastes()
+
+    def insert(self, text: str) -> None:
+        self.query_one("#input-textarea", TextArea).insert(text)
+
+    def focus(self, scroll_visible: bool = True) -> InputBox:
+        self.query_one("#input-textarea", TextArea).focus(scroll_visible)
+        return self
+
+    def set_commands(self, commands: list[SlashCommand]) -> None:
+        self._slash_provider.commands = commands
+
+    def set_fd_path(self, fd_path: str | None) -> None:
+        self._file_provider.set_fd_path(fd_path)
+
+    def set_file_paths(self, paths: list[str]) -> None:
+        self._file_provider.set_paths(paths)
+
+    def set_cwd(self, cwd: str) -> None:
+        self._cwd = cwd
+        self._file_provider.set_cwd(cwd)
+        self._path_complete.clear_cache()
+
+    def set_autocomplete_enabled(self, enabled: bool) -> None:
+        self._autocomplete_enabled = enabled
+
+    def set_completing(self, is_completing: bool) -> None:
+        self._is_completing = is_completing
+        if not is_completing:
+            self._active_provider = None
+            self._completion_prefix = ""
+            self._tab_completing = False
+            self._tab_start_col = 0
+            self._tab_base_fragment = ""
+
+    def _transform_paste(self, pasted_text: str) -> str:
+        normalized = pasted_text.replace("\r\n", "\n").replace("\r", "\n")
+        filtered = "".join(char for char in normalized if char == "\n" or ord(char) >= 32)
+        line_count = len(filtered.split("\n"))
+        char_count = len(filtered)
+
+        if line_count > _PASTE_LINE_THRESHOLD or char_count > _PASTE_CHAR_THRESHOLD:
+            self._paste_counter += 1
+            paste_id = self._paste_counter
+            self._pastes[paste_id] = filtered
+            if line_count > _PASTE_LINE_THRESHOLD:
+                return f"[paste #{paste_id} +{line_count} lines]"
+            return f"[paste #{paste_id} {char_count} chars]"
+
+        return filtered
+
+    def _expand_paste_markers(self, text: str) -> str:
+        def replace_match(match: re.Match[str]) -> str:
+            paste_id = int(match.group(1))
+            return self._pastes.get(paste_id, match.group(0))
+
+        return _PASTE_MARKER_RE.sub(replace_match, text)
+
+    def _reset_pastes(self) -> None:
+        self._pastes.clear()
+        self._paste_counter = 0
+
+    # -------------------------------------------------------------------------
+    # Text change handling - trigger autocomplete
+    # -------------------------------------------------------------------------
+
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        event.stop()
+
+        # Skip autocomplete if we just applied a completion
+        if self._suppress_autocomplete > 0:
+            self._suppress_autocomplete -= 1
+            return
+
+        if not self._autocomplete_enabled:
+            return
+
+        self._try_autocomplete()
+
+    def _try_autocomplete(self) -> None:
+        textarea = self.query_one("#input-textarea", TextArea)
+        text = textarea.text
+        cursor_col = len(text)
+
+        # Check each provider
+        for provider in self._providers:
+            if provider.should_trigger(text, cursor_col):
+                result = provider.get_suggestions(text, cursor_col)
+                if result and result.items:
+                    self._active_provider = provider
+                    self._completion_prefix = result.prefix
+                    self._is_completing = True
+                    # Post message for app to show/update the list
+                    self.post_message(self.CompletionUpdate(result.items))
+                    return
+
+        # No provider matched - hide completion
+        if self._is_completing:
+            self._is_completing = False
+            self._active_provider = None
+            self._completion_prefix = ""
+            self.post_message(self.CompletionHide())
+
+    # -------------------------------------------------------------------------
+    # Key handling
+    # -------------------------------------------------------------------------
+
+    def action_submit(self) -> None:
+        if self._is_completing:
+            # Tell app to apply the current selection
+            self.post_message(self.CompletionSelect())
+            return
+        self._do_submit()
+
+    def _do_submit(self) -> None:
+        display_text = self.text.strip()
+        if not display_text:
+            return
+        query_text = self._expand_paste_markers(display_text)
+        self._add_to_history(query_text)
+        self.post_message(self.Submitted(display_text, query_text=query_text))
+        self.clear(reset_pastes=True)
+
+    def submit_raw(self) -> None:
+        self._is_completing = False
+        self._active_provider = None
+        self._completion_prefix = ""
+        self._do_submit()
+
+    def action_newline(self) -> None:
+        self.query_one("#input-textarea", TextArea).insert("\n")
+
+    def action_cancel(self) -> None:
+        app = self.app
+        if getattr(app, "_is_running", False):
+            # While streaming, ESC should interrupt the agent, not clear input.
+            app.action_interrupt_agent()  # type: ignore
+            return
+
+        if self._is_completing:
+            self._is_completing = False
+            self._active_provider = None
+            self._completion_prefix = ""
+            self.post_message(self.CompletionHide())
+        else:
+            self.clear()
+
+    def action_cursor_up(self) -> None:
+        if self._is_completing:
+            self.post_message(self.CompletionMove(-1))
+        else:
+            textarea = self.query_one("#input-textarea", TextArea)
+            row, _ = textarea.selection.start
+            if row == 0:
+                self._history_navigate(-1)
+            else:
+                textarea.action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        if self._is_completing:
+            self.post_message(self.CompletionMove(1))
+        else:
+            textarea = self.query_one("#input-textarea", TextArea)
+            row, _ = textarea.selection.start
+            if row == textarea.document.line_count - 1:
+                self._history_navigate(1)
+            else:
+                textarea.action_cursor_down()
+
+    def action_tab_complete(self) -> None:
+        """Handle Tab key for path completion."""
+        self.run_worker(self._do_tab_complete())
+
+    async def _do_tab_complete(self) -> None:
+        """Perform tab completion asynchronously."""
+        # If already completing, treat Tab as moving down in the list
+        if self._is_completing:
+            self.post_message(self.CompletionMove(1))
+            return
+
+        textarea = self.query_one("#input-textarea", TextArea)
+        cursor_pos = textarea.selection.end
+        text = textarea.text
+
+        # Get text before cursor on current line
+        row, col = cursor_pos
+        lines = text.split("\n")
+        if row >= len(lines):
+            return
+        line = lines[row]
+        text_before_cursor = line[:col]
+
+        # Extract path fragment (last word/token before cursor)
+        path_fragment, start_col = PathComplete.extract_path_fragment(text_before_cursor)
+        if not path_fragment:
+            # No path to complete - insert literal tab (spaces)
+            self._suppress_autocomplete = 1
+            textarea.insert("    ")
+            return
+
+        # Call PathComplete
+        completion, alternatives = await self._path_complete(self._cwd, path_fragment)
+
+        if not completion and not alternatives:
+            # No matches - beep
+            self.app.bell()
+            return
+
+        if completion and not alternatives:
+            # Unique completion - insert directly
+            self._suppress_autocomplete = 1
+            textarea.insert(completion)
+            # Add space after files (not directories)
+            if not completion.endswith(os.sep):
+                textarea.insert(" ")
+            return
+
+        # Multiple alternatives - show floating list
+        # First, insert any common prefix
+        if completion:
+            self._suppress_autocomplete = 1
+            textarea.insert(completion)
+            # Update cursor position after insertion
+            col = col + len(completion)
+
+        # Prepare items for floating list
+        base_fragment = PathComplete.get_base_path(path_fragment + completion)
+        items = []
+        for alt in alternatives[:20]:  # Limit to 20 items
+            label = alt
+            # Show the base path as description
+            description = base_fragment if base_fragment else "."
+            items.append(ListItem(value=alt, label=label, description=description))
+
+        # Save state for applying completion later
+        self._tab_completing = True
+        self._tab_start_col = start_col
+        self._tab_base_fragment = base_fragment
+        self._is_completing = True
+
+        # Show the floating list
+        self.post_message(self.CompletionUpdate(items))
+
+    # -------------------------------------------------------------------------
+    # Completion application (called by app after selection)
+    # -------------------------------------------------------------------------
+
+    def apply_slash_command(self, item: ListItem) -> None:
+        cmd: SlashCommand = item.value
+        self._is_completing = False
+        self._active_provider = None
+        self._completion_prefix = ""
+        self._suppress_autocomplete = 1  # clear() = 1 event
+        self.clear(reset_pastes=True)
+        self.post_message(self.Submitted(f"/{cmd.name}"))
+
+    def apply_file_completion(self, item: ListItem) -> None:
+        textarea = self.query_one("#input-textarea", TextArea)
+        text = textarea.text
+        cursor_col = len(text)
+
+        new_text, _ = self._file_provider.apply_completion(
+            text, cursor_col, item, self._completion_prefix
+        )
+
+        self._is_completing = False
+        self._active_provider = None
+        self._completion_prefix = ""
+        self._suppress_autocomplete = 2  # clear() + insert() = 2 events
+        textarea.clear()
+        textarea.insert(new_text)
+
+    def apply_tab_path_completion(self, item: ListItem) -> None:
+        """Apply a tab path completion selection."""
+        textarea = self.query_one("#input-textarea", TextArea)
+        text = textarea.text
+        cursor_col = len(text)
+
+        # Get the selected path
+        selected_path: str = item.value
+
+        # Build the new path: base_fragment + selected
+        new_path = self._tab_base_fragment + selected_path
+
+        # Quote if contains spaces
+        if " " in new_path and not new_path.startswith('"'):
+            new_path = f'"{new_path}"'
+
+        # Replace from start_col to cursor
+        text_before = text[: self._tab_start_col]
+        text_after = text[cursor_col:]
+
+        # Add space after files (not directories)
+        is_dir = selected_path.endswith("/") or selected_path.endswith(os.sep)
+        suffix = "" if is_dir else " "
+
+        new_text = text_before + new_path + suffix + text_after
+
+        # Clear state
+        self._is_completing = False
+        self._tab_completing = False
+        self._tab_start_col = 0
+        self._tab_base_fragment = ""
+        self._suppress_autocomplete = 2  # clear() + insert() = 2 events
+
+        textarea.clear()
+        textarea.insert(new_text)
+
+    @property
+    def active_provider(self) -> AutocompleteProvider | None:
+        return self._active_provider
+
+    # -------------------------------------------------------------------------
+    # History
+    # -------------------------------------------------------------------------
+
+    def _add_to_history(self, text: str) -> None:
+        if text and (not self._history or self._history[-1] != text):
+            self._history.append(text)
+        self._history_index = -1
+        self._history_temp = ""
+
+    def _history_navigate(self, direction: int) -> None:
+        if not self._history:
+            return
+
+        textarea = self.query_one("#input-textarea", TextArea)
+
+        if self._history_index == -1:
+            self._history_temp = textarea.text
+
+        new_index = self._history_index + direction
+
+        if new_index < -1 or new_index >= len(self._history):
+            return
+
+        self._history_index = new_index
+
+        textarea.clear()
+        if self._history_index == -1:
+            textarea.insert(self._history_temp)
+        else:
+            history_item = self._history[-(self._history_index + 1)]
+            textarea.insert(history_item)
+
+    # -------------------------------------------------------------------------
+    # Messages
+    # -------------------------------------------------------------------------
+
+    class Submitted(Message):
+        def __init__(self, text: str, query_text: str | None = None) -> None:
+            super().__init__()
+            self.text = text
+            self.query_text = query_text if query_text is not None else text
+
+    class CompletionUpdate(Message):
+        def __init__(self, items: list[ListItem]) -> None:
+            super().__init__()
+            self.items = items
+
+    class CompletionHide(Message):
+        pass
+
+    class CompletionSelect(Message):
+        pass
+
+    class CompletionMove(Message):
+        def __init__(self, direction: int) -> None:
+            super().__init__()
+            self.direction = direction

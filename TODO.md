@@ -1,0 +1,2 @@
+- easily attach previous chats as truncated context?
+- amp inspired /handoff <instructions>, like branching in pi?

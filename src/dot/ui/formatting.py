@@ -1,0 +1,116 @@
+import shutil
+from typing import ClassVar
+
+from rich._loop import loop_first
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.markdown import CodeBlock, Heading, ListElement, ListItem, Markdown
+from rich.segment import Segment
+from rich.style import Style
+from rich.syntax import Syntax
+from rich.text import Text
+from rich.theme import Theme
+
+from dot import config
+
+_MARKDOWN_THEME: Theme | None = None
+
+
+def get_markdown_theme() -> Theme:
+    global _MARKDOWN_THEME
+    if _MARKDOWN_THEME is None:
+        code_color = config.ui.colors.markdown_code
+        _MARKDOWN_THEME = Theme({"markdown.code": Style(color=code_color)})
+    return _MARKDOWN_THEME
+
+
+MARKDOWN_THEME = get_markdown_theme()
+
+
+class LeftJustifiedHeading(Heading):
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        yield from console.render(self.text, options=options.update(justify="left"))
+
+
+class PlainListItem(ListItem):
+    def render_bullet(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        render_options = options.update(width=options.max_width - 2)
+        lines = console.render_lines(self.elements, render_options, style=self.style)
+        bullet = Segment("- ")
+        padding = Segment("  ")
+        new_line = Segment("\n")
+        for first, line in loop_first(lines):
+            yield bullet if first else padding
+            yield from line
+            yield new_line
+
+    def render_number(
+        self, console: Console, options: ConsoleOptions, number: int, last_number: int
+    ) -> RenderResult:
+        number_width = len(str(last_number)) + 2
+        render_options = options.update(width=options.max_width - number_width)
+        lines = console.render_lines(self.elements, render_options, style=self.style)
+        new_line = Segment("\n")
+        padding = Segment(" " * number_width)
+        numeral = Segment(f"{number}".rjust(number_width - 1) + " ")
+        for first, line in loop_first(lines):
+            yield numeral if first else padding
+            yield from line
+            yield new_line
+
+
+class PlainListElement(ListElement):
+    def on_child_close(self, context, child) -> bool:
+        assert isinstance(child, ListItem)
+        self.items.append(child)
+        return False
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        if self.list_type == "bullet_list_open":
+            for item in self.items:
+                if isinstance(item, PlainListItem):
+                    yield from item.render_bullet(console, options)
+        else:
+            number = 1 if self.list_start is None else self.list_start
+            last_number = number + len(self.items)
+            for index, item in enumerate(self.items):
+                if isinstance(item, PlainListItem):
+                    yield from item.render_number(console, options, number + index, last_number)
+
+
+class PlainCodeBlock(CodeBlock):
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        code = str(self.text).rstrip()
+        syntax = Syntax(code, self.lexer_name, theme="ansi_dark", word_wrap=True, padding=0)
+        yield syntax
+
+
+class CustomMarkdown(Markdown):
+    elements: ClassVar[dict] = {
+        **Markdown.elements,
+        "heading_open": LeftJustifiedHeading,
+        "bullet_list_open": PlainListElement,
+        "ordered_list_open": PlainListElement,
+        "list_item_open": PlainListItem,
+        "fence": PlainCodeBlock,
+        "code_block": PlainCodeBlock,
+    }
+
+
+def format_markdown(text: str, width: int | None = None) -> Text:
+    md = CustomMarkdown(text)
+    if width is None:
+        term_width = shutil.get_terminal_size().columns
+        width = max(40, term_width - 4)
+    console = Console(force_terminal=True, no_color=False, theme=MARKDOWN_THEME, width=width)
+    with console.capture() as capture:
+        console.print(md)
+    rendered = capture.get()
+    return Text.from_ansi(rendered.rstrip("\n"))
+
+
+def format_tokens(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{int(n / 1_000_000)}m"
+    elif n >= 1_000:
+        return f"{int(n / 1_000)}k"
+    return str(n)
