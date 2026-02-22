@@ -1,3 +1,8 @@
+- show new release update in ui to prompt the user to upgrade
+- show tokens streamed in for bash, edit and write tools (which can large at times)
+- if @ or / menu is open pressing esc closes it but interrupts stream as well
+- bug in how we report context size, tokens in and out and cached tokens for codex?
+- steer (immediate) and normal queues
 - easily attach previous chats as truncated context?
 - amp inspired /handoff <instructions>, like branching in pi?
 - skills triggered manually from /cmds
