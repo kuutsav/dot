@@ -49,6 +49,7 @@ Screen {{
 .thinking-block Label,
 .content-block Label,
 .user-block Label,
+.update-available-block Label,
 .tool-block Label {{
     width: 100%;
 }}
@@ -59,6 +60,14 @@ Screen {{
     margin: 1 0 0 0;
     border-top: solid grey;
     border-bottom: solid grey;
+}}
+
+/* Update available message */
+.update-available-block {{
+    padding: 0 1;
+    margin: 1 0 0 0;
+    border-top: solid yellow;
+    border-bottom: solid yellow;
 }}
 
 /* Session info */

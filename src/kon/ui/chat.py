@@ -4,7 +4,7 @@ from textual.widgets import Label
 
 from kon import config
 
-from .blocks import ContentBlock, ThinkingBlock, ToolBlock, UserBlock
+from .blocks import ContentBlock, ThinkingBlock, ToolBlock, UpdateAvailableBlock, UserBlock
 
 MAX_CHILDREN = 300
 PRUNE_TO = 200
@@ -125,6 +125,13 @@ class ChatLog(VerticalScroll):
 
     def add_user_message(self, content: str) -> UserBlock:
         block = UserBlock(content)
+        self.mount(block)
+        self._scroll_if_anchored(animate=False)
+        self._prune_if_needed()
+        return block
+
+    def add_update_available_message(self, latest_version: str) -> UpdateAvailableBlock:
+        block = UpdateAvailableBlock(latest_version)
         self.mount(block)
         self._scroll_if_anchored(animate=False)
         self._prune_if_needed()

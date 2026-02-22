@@ -7,6 +7,8 @@ from kon import config
 
 from .formatting import format_markdown
 
+_UPDATE_COMMAND = "uv tool upgrade kon-coding-agent"
+
 
 class ThinkingBlock(Static):
     """Uses plain text during streaming for performance, renders markdown on finalize."""
@@ -204,4 +206,27 @@ class UserBlock(Static):
         text = Text()
         text.append("> ", style="bold")
         text.append(self._content)
+        yield Label(text)
+
+
+class UpdateAvailableBlock(Static):
+    ALLOW_SELECT = True
+    can_focus = False
+
+    def __init__(self, latest_version: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._latest_version = latest_version
+        self.add_class("update-available-block")
+
+    def compose(self) -> ComposeResult:
+        warning_color = config.ui.colors.warning
+        dim_color = config.ui.colors.dim
+        accent_color = config.ui.colors.accent
+
+        text = Text()
+        text.append("Update Available", style=f"{warning_color} bold")
+        text.append("\n", style=dim_color)
+        text.append(f"New version {self._latest_version} is available. ", style=dim_color)
+        text.append("Run: ", style=dim_color)
+        text.append(_UPDATE_COMMAND, style=accent_color)
         yield Label(text)

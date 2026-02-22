@@ -5,6 +5,7 @@ import shutil
 import sys
 import time
 from collections import deque
+from importlib.metadata import PackageNotFoundError, version
 from typing import ClassVar
 
 from rich.console import Console
@@ -53,6 +54,7 @@ from ..llm import (
 from ..loop import Agent, AgentConfig
 from ..session import Session
 from ..tools import DEFAULT_TOOLS, get_tools
+from ..update_check import get_newer_pypi_version
 from .autocomplete import FilePathProvider, SlashCommandProvider
 from .chat import ChatLog
 from .commands import CommandsMixin
@@ -63,7 +65,12 @@ from .session_ui import SessionUIMixin
 from .styles import STYLES
 from .widgets import InfoBar, QueueDisplay, StatusLine, format_path
 
-VERSION = "0.1.0"
+_PYPI_PACKAGE_NAME = "kon-coding-agent"
+
+try:
+    VERSION = version(_PYPI_PACKAGE_NAME)
+except PackageNotFoundError:
+    VERSION = "0.2.0"
 
 _COPILOT_API_TYPES: frozenset[ApiType] = frozenset(
     {ApiType.GITHUB_COPILOT, ApiType.GITHUB_COPILOT_RESPONSES, ApiType.ANTHROPIC_COPILOT}
@@ -139,6 +146,10 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         self._agent: Agent | None = None
         self._project_context: Context | None = None
 
+        self._pending_update_notice_version: str | None = None
+        self._update_notice_shown = False
+        self._startup_complete = False
+
     def compose(self) -> ComposeResult:
         yield ChatLog(id="chat-log")
         yield QueueDisplay(id="queue-display")
@@ -179,6 +190,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             self.run_worker(self._collect_file_paths(), exclusive=False)
 
         self.run_worker(self._ensure_binaries(), exclusive=False)
+        self.run_worker(self._check_for_updates(), exclusive=False)
 
         if self._resume_session:
             try:
@@ -284,6 +296,8 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             info_bar.set_tokens(input_t, output_t, context_t, cached_t)
             chat.add_info_message("Resumed session")
 
+        self._startup_complete = True
+        self._show_pending_update_notice_if_idle()
         input_box.focus()
 
     async def _collect_file_paths(self) -> None:
@@ -322,6 +336,25 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             self._exit_hints.append(
                 "Install eza for more token-efficient directory listings (brew install eza)"
             )
+
+    async def _check_for_updates(self) -> None:
+        latest = await get_newer_pypi_version(_PYPI_PACKAGE_NAME, VERSION)
+        if latest is None:
+            return
+
+        self._pending_update_notice_version = latest
+        self.call_later(self._show_pending_update_notice_if_idle)
+
+    def _show_pending_update_notice_if_idle(self) -> None:
+        if not self._startup_complete or self._is_running:
+            return
+        if self._update_notice_shown or self._pending_update_notice_version is None:
+            return
+
+        chat = self.query_one("#chat-log", ChatLog)
+        chat.add_update_available_message(self._pending_update_notice_version)
+        self._update_notice_shown = True
+        self._pending_update_notice_version = None
 
     # -------------------------------------------------------------------------
     # Completion message handlers
@@ -676,6 +709,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             break
 
         self._is_running = False
+        self._show_pending_update_notice_if_idle()
 
 
 def _print_exit_message(messages: list[str], hints: list[str]) -> None:
