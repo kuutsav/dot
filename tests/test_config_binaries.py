@@ -1,4 +1,4 @@
-from dot import AVAILABLE_BINARIES, config
+from kon import AVAILABLE_BINARIES, config
 
 
 def test_available_binaries_is_set():

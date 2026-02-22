@@ -205,7 +205,7 @@ wheels = [
 ]
 
 [[package]]
-name = "dot-coding-agent"
+name = "kon-coding-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

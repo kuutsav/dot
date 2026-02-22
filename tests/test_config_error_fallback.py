@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from dot.config import Config, consume_config_warnings, get_config, reset_config
+from kon.config import Config, consume_config_warnings, get_config, reset_config
 
 
 def test_invalid_toml_falls_back_to_defaults_and_records_warning(tmp_path, monkeypatch):
     home = tmp_path / "home"
-    config_dir = home / ".dot"
+    config_dir = home / ".kon"
     config_dir.mkdir(parents=True)
     config_file = config_dir / "config.toml"
     config_file.write_text("[bad", encoding="utf-8")

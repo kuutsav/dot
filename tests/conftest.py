@@ -1,4 +1,4 @@
-from dot import reset_config
+from kon import reset_config
 
 
 def pytest_runtest_teardown(item, nextitem):

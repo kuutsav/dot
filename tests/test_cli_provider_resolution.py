@@ -1,6 +1,6 @@
-from dot.llm import resolve_provider_api_type
-from dot.llm.models import ApiType
-from dot.ui.app import _default_base_url_for_api
+from kon.llm import resolve_provider_api_type
+from kon.llm.models import ApiType
+from kon.ui.app import _default_base_url_for_api
 
 
 def test_resolve_provider_api_type_known_provider():
@@ -19,7 +19,7 @@ def test_resolve_provider_api_type_unknown_provider():
 
 
 def test_default_base_url_for_api_openai_completions(monkeypatch):
-    monkeypatch.setenv("DOT_BASE_URL", "http://localhost:1234/v1")
+    monkeypatch.setenv("KON_BASE_URL", "http://localhost:1234/v1")
     assert _default_base_url_for_api(ApiType.OPENAI_COMPLETIONS) == "http://localhost:1234/v1"
 
 

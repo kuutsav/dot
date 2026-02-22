@@ -1,6 +1,6 @@
 import pytest
 
-from dot.tools.write import WriteParams, WriteTool
+from kon.tools.write import WriteParams, WriteTool
 
 
 @pytest.fixture

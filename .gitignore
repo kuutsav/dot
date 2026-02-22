@@ -12,8 +12,8 @@ wheels/
 # macOS
 .DS_Store
 
-# Exported dot sessions
-dot-session-*
+# Exported kon sessions
+kon-session-*
 
 # Local editor settings
 .vscode/

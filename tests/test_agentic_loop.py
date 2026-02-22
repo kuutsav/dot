@@ -2,9 +2,9 @@ import asyncio
 
 import pytest
 
-from dot import Config, reset_config, set_config
-from dot.core.types import StopReason, TextContent, UserMessage
-from dot.events import (
+from kon import Config, reset_config, set_config
+from kon.core.types import StopReason, TextContent, UserMessage
+from kon.events import (
     AgentEndEvent,
     AgentStartEvent,
     ErrorEvent,
@@ -23,11 +23,11 @@ from dot.events import (
     TurnStartEvent,
     WarningEvent,
 )
-from dot.llm.providers import MockProvider
-from dot.loop import Agent, AgentConfig
-from dot.session import Session
-from dot.tools import BashTool, ReadTool
-from dot.turn import run_single_turn
+from kon.llm.providers import MockProvider
+from kon.loop import Agent, AgentConfig
+from kon.session import Session
+from kon.tools import BashTool, ReadTool
+from kon.turn import run_single_turn
 
 
 @pytest.fixture
@@ -181,7 +181,7 @@ async def test_agent_with_thinking(tools, in_memory_session):
 
 @pytest.mark.asyncio
 async def test_agent_with_images(tools, in_memory_session):
-    from dot.core.types import ImageContent
+    from kon.core.types import ImageContent
 
     provider = MockProvider(scenario="simple_text")
     images = [ImageContent(data="base64data", mime_type="image/png")]

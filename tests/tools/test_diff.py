@@ -1,4 +1,4 @@
-from dot.tools.edit import generate_diff
+from kon.tools.edit import generate_diff
 
 
 class TestGenerateDiff:

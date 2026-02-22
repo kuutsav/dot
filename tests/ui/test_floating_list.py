@@ -1,4 +1,4 @@
-from dot.ui.floating_list import FloatingList, ListItem
+from kon.ui.floating_list import FloatingList, ListItem
 
 
 def _make_items(count: int) -> list[ListItem[str]]:

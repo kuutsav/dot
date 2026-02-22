@@ -1,4 +1,4 @@
-from dot.context.skills import (
+from kon.context.skills import (
     Skill,
     _load_skill_from_dir,
     _parse_frontmatter,
@@ -229,7 +229,7 @@ description: Uses directory name
 class TestLoadSkills:
     def test_loads_local_and_global_unique_skills(self, tmp_path, monkeypatch):
         repo = tmp_path / "repo"
-        local_skills_dir = repo / ".dot" / "skills"
+        local_skills_dir = repo / ".kon" / "skills"
         local_skill_dir = local_skills_dir / "local-skill"
         local_skill_dir.mkdir(parents=True)
         (local_skill_dir / "SKILL.md").write_text("""---
@@ -248,7 +248,7 @@ description: Global skill
 ---
 """)
 
-        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+        monkeypatch.setattr("kon.context.skills.get_config_dir", lambda: global_dir)
 
         result = load_skills(str(repo))
 
@@ -257,7 +257,7 @@ description: Global skill
 
     def test_local_overrides_global_name_collision(self, tmp_path, monkeypatch):
         repo = tmp_path / "repo"
-        local_skill_dir = repo / ".dot" / "skills" / "shared-skill"
+        local_skill_dir = repo / ".kon" / "skills" / "shared-skill"
         local_skill_dir.mkdir(parents=True)
         (local_skill_dir / "SKILL.md").write_text("""---
 name: shared-skill
@@ -274,7 +274,7 @@ description: Global version
 ---
 """)
 
-        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+        monkeypatch.setattr("kon.context.skills.get_config_dir", lambda: global_dir)
 
         result = load_skills(str(repo))
 
@@ -288,7 +288,7 @@ description: Global version
         repo.mkdir()
         global_dir = tmp_path / "global"
 
-        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+        monkeypatch.setattr("kon.context.skills.get_config_dir", lambda: global_dir)
 
         result = load_skills(str(repo))
 
@@ -297,7 +297,7 @@ description: Global version
 
     def test_invalid_skill_excluded_and_warning_returned(self, tmp_path, monkeypatch):
         repo = tmp_path / "repo"
-        invalid_skill_dir = repo / ".dot" / "skills" / "invalid-skill"
+        invalid_skill_dir = repo / ".kon" / "skills" / "invalid-skill"
         invalid_skill_dir.mkdir(parents=True)
         (invalid_skill_dir / "SKILL.md").write_text("""---
 name: invalid-skill
@@ -306,7 +306,7 @@ name: invalid-skill
 """)
 
         global_dir = tmp_path / "global"
-        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+        monkeypatch.setattr("kon.context.skills.get_config_dir", lambda: global_dir)
 
         result = load_skills(str(repo))
 
@@ -315,7 +315,7 @@ name: invalid-skill
 
     def test_uses_directory_name_when_name_missing_in_frontmatter(self, tmp_path, monkeypatch):
         repo = tmp_path / "repo"
-        skill_dir = repo / ".dot" / "skills" / "fallback-name"
+        skill_dir = repo / ".kon" / "skills" / "fallback-name"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("""---
 description: Uses directory fallback
@@ -323,7 +323,7 @@ description: Uses directory fallback
 """)
 
         global_dir = tmp_path / "global"
-        monkeypatch.setattr("dot.context.skills.get_config_dir", lambda: global_dir)
+        monkeypatch.setattr("kon.context.skills.get_config_dir", lambda: global_dir)
 
         result = load_skills(str(repo))
 

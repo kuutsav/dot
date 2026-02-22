@@ -1,7 +1,7 @@
 import pytest
 
-from dot.core.types import ImageContent
-from dot.tools.read import ReadParams, ReadTool
+from kon.core.types import ImageContent
+from kon.tools.read import ReadParams, ReadTool
 
 
 @pytest.fixture

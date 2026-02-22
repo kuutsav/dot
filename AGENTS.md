@@ -8,7 +8,7 @@
 ## Testing
 
 - Use `uv run pytest` for testing in general; after edits/writes
-- If the user asks for e2e tests then run the dot-tmux e2e test if available
+- If the user asks for e2e tests then run the kon-tmux e2e test if available
 
 ## Committing code
 

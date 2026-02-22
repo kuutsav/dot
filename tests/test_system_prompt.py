@@ -1,5 +1,5 @@
-from dot.context import Context
-from dot.loop import build_system_prompt
+from kon.context import Context
+from kon.loop import build_system_prompt
 
 
 def test_system_prompt_includes_guidelines():

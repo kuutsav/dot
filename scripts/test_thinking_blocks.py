@@ -8,9 +8,9 @@ from dataclasses import dataclass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from dot.core.types import StreamDone, StreamError, TextPart, ThinkPart, UserMessage
-from dot.llm import ProviderConfig, resolve_provider_api_type
-from dot.llm.providers import OpenAIResponsesProvider
+from kon.core.types import StreamDone, StreamError, TextPart, ThinkPart, UserMessage
+from kon.llm import ProviderConfig, resolve_provider_api_type
+from kon.llm.providers import OpenAIResponsesProvider
 
 
 @dataclass
@@ -51,7 +51,7 @@ async def _run_probe(
     if api_type.value == "openai-responses":
         provider = OpenAIResponsesProvider(config)
     else:
-        from dot.llm import API_TYPE_TO_PROVIDER_CLASS
+        from kon.llm import API_TYPE_TO_PROVIDER_CLASS
 
         provider_cls = API_TYPE_TO_PROVIDER_CLASS[api_type]
         provider = provider_cls(config)
@@ -138,7 +138,7 @@ async def main() -> int:
     if resolved_api.value == "openai-responses":
         provider_class_name = OpenAIResponsesProvider.__name__
     else:
-        from dot.llm import API_TYPE_TO_PROVIDER_CLASS
+        from kon.llm import API_TYPE_TO_PROVIDER_CLASS
 
         provider_class_name = API_TYPE_TO_PROVIDER_CLASS[resolved_api].__name__
     print(f"  api_type:       {resolved_api.value}")
@@ -184,7 +184,7 @@ async def main() -> int:
     if result.thinking_chunks == 0:
         print("\nNo thinking chunks observed.")
         print("This usually means the upstream endpoint/model is not streaming reasoning fields.")
-        print("(In dot UI, you can also toggle visibility with Ctrl+T.)")
+        print("(In kon UI, you can also toggle visibility with Ctrl+T.)")
     else:
         print("\nThinking chunks detected ✅")
 

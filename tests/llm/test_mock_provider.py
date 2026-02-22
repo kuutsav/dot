@@ -2,8 +2,8 @@
 
 import pytest
 
-from dot.core.types import StreamDone, TextPart, ThinkPart, ToolCallDelta, ToolCallStart
-from dot.llm.providers import MockProvider
+from kon.core.types import StreamDone, TextPart, ThinkPart, ToolCallDelta, ToolCallStart
+from kon.llm.providers import MockProvider
 
 
 @pytest.mark.asyncio
@@ -128,7 +128,7 @@ def test_mock_provider_should_retry():
 @pytest.mark.asyncio
 async def test_mock_provider_with_config():
     """Test that mock provider can be initialized with a config."""
-    from dot.llm.base import ProviderConfig
+    from kon.llm.base import ProviderConfig
 
     config = ProviderConfig(model="test-model", temperature=0.5)
     provider = MockProvider(config=config)

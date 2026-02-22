@@ -1,21 +1,21 @@
-# Dot
+# Kon
 
 ![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-Dot is a minimal coding agent that just works.
+Kon is a minimal coding agent that just works.
 
 It has a tiny harness: about **215 tokens** for the system prompt and around **600 tokens** for tool definitions – so **under 1k tokens** before conversation context.
 
 At the time of writing this README (**22 Feb 2026**), this repo has **108 files** and is easy to understand in a weekend. Here’s a rough file-count comparison against a couple of popular OSS coding agents:
 
-Others are of course more mature, support more models, include broader test coverage, and cover more surfaces. But if you want a truly minimal coding agent with batteries included – something you can understand, fork, and extend quickly – Dot might be interesting.
+Others are of course more mature, support more models, include broader test coverage, and cover more surfaces. But if you want a truly minimal coding agent with batteries included – something you can understand, fork, and extend quickly – Kon might be interesting.
 
 ```bash
 $ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
 4107 opencode
  740 pi-mono
- 108 dot
+ 108 kon
 ```
 
 > [!NOTE]
@@ -36,34 +36,34 @@ Python 3.12+ and [uv](https://github.com/astral-sh/uv).
 ### Install (recommended)
 
 ```bash
-uv tool install dot-coding-agent
+uv tool install kon-coding-agent
 ```
 
-This installs `dot` globally as a CLI tool.
+This installs `kon` globally as a CLI tool.
 
 ### Install from source (advanced)
 
 ```bash
 git clone <repository-url>
-cd dot
+cd kon
 uv tool install .
 ```
 
 ### Run
 
 ```bash
-dot
+kon
 ```
 
 CLI options:
 
 ```text
-usage: dot [-h] [--model MODEL]
+usage: kon [-h] [--model MODEL]
            [--provider {github-copilot,openai,openai-codex,openai-responses,zhipu}]
            [--api-key API_KEY] [--base-url BASE_URL] [--continue]
            [--resume RESUME_SESSION]
 
-Dot TUI
+Kon TUI
 
 options:
   -h, --help            show this help message and exit
@@ -82,14 +82,14 @@ options:
 
 ### Tool binaries
 
-- **[fd](https://github.com/sharkdp/fd)** – required for fast file discovery; Dot auto-downloads it only if it's missing.
-- **[ripgrep (rg)](https://github.com/BurntSushi/ripgrep)** – required for fast content search; Dot auto-downloads it only if it's missing.
+- **[fd](https://github.com/sharkdp/fd)** – required for fast file discovery; Kon auto-downloads it only if it's missing.
+- **[ripgrep (rg)](https://github.com/BurntSushi/ripgrep)** – required for fast content search; Kon auto-downloads it only if it's missing.
 - **[eza](https://github.com/eza-community/eza)** (optional) – supports `.gitignore`-aware listings and usually emits fewer tokens than `ls`.
 
 ## OAuth and API keys
 
 - **GitHub Copilot OAuth**: run `/login` and choose GitHub Copilot.
-- **OpenAI OAuth (Codex)**: run `/login` and choose OpenAI. Dot supports callback flow plus manual paste fallback.
+- **OpenAI OAuth (Codex)**: run `/login` and choose OpenAI. Kon supports callback flow plus manual paste fallback.
 - **OpenAI-compatible providers (for example ZhiPu)**: set an API key via environment variable (`OPENAI_API_KEY` or `ZAI_API_KEY`).
 
 ## Features
@@ -122,7 +122,7 @@ Type `/` at the start of input to see available commands.
 | `/logout` | Log out from a provider |
 | `/clear` | Clear current conversation |
 | `/help` | Show commands and keybindings |
-| `/quit` (`/exit`, `/q`) | Quit Dot |
+| `/quit` (`/exit`, `/q`) | Quit Kon |
 
 ### `@` file and folder search
 
@@ -134,11 +134,11 @@ Press **Tab** in the input box to complete paths (`~`, `./`, `../`, absolute pat
 
 ### Query queueing
 
-If the agent is currently running, you can still submit more prompts. Dot queues them and runs them in order once the current task finishes (up to 5 queued prompts).
+If the agent is currently running, you can still submit more prompts. Kon queues them and runs them in order once the current task finishes (up to 5 queued prompts).
 
 ### Sessions
 
-Sessions are append-only JSONL files under `~/.dot/sessions/`.
+Sessions are append-only JSONL files under `~/.kon/sessions/`.
 
 - `/resume` to reopen past sessions
 - `/session` for message/token stats
@@ -147,17 +147,17 @@ Sessions are append-only JSONL files under `~/.dot/sessions/`.
 
 ### AGENTS.md
 
-Dot loads project guidelines from `AGENTS.md` (or `CLAUDE.md`) files into the system prompt:
+Kon loads project guidelines from `AGENTS.md` (or `CLAUDE.md`) files into the system prompt:
 
-1. Global: `~/.dot/AGENTS.md`
+1. Global: `~/.kon/AGENTS.md`
 2. Ancestor directories from git root (or home) down to current working directory
 
 ### Skills
 
 Skills are reusable instruction packs loaded from:
 
-- Project: `.dot/skills/`
-- Global: `~/.dot/skills/`
+- Project: `.kon/skills/`
+- Global: `~/.kon/skills/`
 
 Each skill has a `SKILL.md` file with front matter:
 
@@ -194,7 +194,7 @@ UI (app.py)
 
 ## Supported Models
 
-Dot works well with local models exposed through an OpenAI-compatible `/v1` API (for example LM Studio).
+Kon works well with local models exposed through an OpenAI-compatible `/v1` API (for example LM Studio).
 
 ### Example on LM Studio
 
@@ -202,10 +202,10 @@ To run a local model like `zai-org/glm-4.7-flash` from LM Studio:
 
 1. Start LM Studio's local server (`http://127.0.0.1:1234`).
 2. Load the model in LM Studio.
-3. Start Dot with the OpenAI Responses provider:
+3. Start Kon with the OpenAI Responses provider:
 
 ```bash
-dot --provider openai-responses \
+kon --provider openai-responses \
   --base-url http://127.0.0.1:1234/v1 \
   --model zai-org/glm-4.7-flash \
   --api-key ""
@@ -227,14 +227,14 @@ dot --provider openai-responses \
 
 ## Configuration
 
-Config lives at `~/.dot/config.toml` (auto-created on first run).
+Config lives at `~/.kon/config.toml` (auto-created on first run).
 
 Most important knobs:
 
 - `llm.default_provider`
 - `llm.default_model`
 - `llm.default_thinking_level`
-- `llm.system_prompt` (**you can fully override Dot’s system prompt here**)
+- `llm.system_prompt` (**you can fully override Kon’s system prompt here**)
 - `llm.tool_call_idle_timeout_seconds` (fallback timeout for stalled tool-call streaming)
 - `compaction.on_overflow`, `compaction.buffer_tokens`, `compaction.default_context_window`
 
@@ -257,22 +257,22 @@ buffer_tokens = 20000
 
 ## Development setup
 
-For hacking on Dot locally:
+For hacking on Kon locally:
 
 ```bash
 uv sync
-uv run dot
+uv run kon
 uv run ruff format .
 uv run pytest
 ```
 
 ## Acknowledgements
 
-- Dot takes significant inspiration from [`pi-mono` coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent), especially in terms of the overall philosophy and UI design.
+- Kon takes significant inspiration from [`pi-mono` coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent), especially in terms of the overall philosophy and UI design.
   - Why not just use pi? Pi is no longer a small project, and I want to be in complete control of my coding agent.
   - I mostly agree with Mario (author of pi), but I have different beliefs on some matters - for example, subagents (especially useful for context gathering in larger repos when paired with semantic search tools).
   - Over time, I also want to give more preference to local LLMs I can run. `glm-4.7-flash` and `qwen-3-coder-next` look promising, so I may make decisions that do not necessarily optimize for SOTA paid models.
-- Dot also borrows ideas from [Amp](https://ampcode.com/), Claude Code, and other coding agents.
+- Kon also borrows ideas from [Amp](https://ampcode.com/), Claude Code, and other coding agents.
 
 ## LICENCE
 

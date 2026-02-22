@@ -22,8 +22,8 @@ from dataclasses import dataclass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from dot.core.types import Message, StreamDone, StreamError, TextPart, ThinkPart, UserMessage
-from dot.llm import (
+from kon.core.types import Message, StreamDone, StreamError, TextPart, ThinkPart, UserMessage
+from kon.llm import (
     ApiType,
     CopilotAnthropicProvider,
     CopilotProvider,
@@ -36,8 +36,8 @@ from dot.llm import (
     is_copilot_logged_in,
     is_openai_logged_in,
 )
-from dot.llm.base import BaseProvider
-from dot.llm.models import Model
+from kon.llm.base import BaseProvider
+from kon.llm.models import Model
 
 
 @dataclass

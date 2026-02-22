@@ -1,8 +1,8 @@
 import pytest
 
-from dot.core.types import ToolResult
-from dot.tools.bash import BashTool
-from dot.tools.read import ReadParams, ReadTool
+from kon.core.types import ToolResult
+from kon.tools.bash import BashTool
+from kon.tools.read import ReadParams, ReadTool
 
 
 @pytest.fixture
@@ -19,8 +19,8 @@ def text_file(tmp_path):
 
 @pytest.mark.asyncio
 async def test_read(read_tool, text_file, monkeypatch):
-    monkeypatch.setattr("dot.tools.read.MAX_LINES_PER_FILE", 5)
-    monkeypatch.setattr("dot.tools.read.MAX_CHARS_PER_LINE", 10)
+    monkeypatch.setattr("kon.tools.read.MAX_LINES_PER_FILE", 5)
+    monkeypatch.setattr("kon.tools.read.MAX_CHARS_PER_LINE", 10)
 
     tool_result = await read_tool.execute(ReadParams(path=str(text_file)))
     lines = tool_result.result.split("\n")

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from dot.ui.autocomplete import DEFAULT_COMMANDS, CompletionResult, FilePathProvider, ListItem
+from kon.ui.autocomplete import DEFAULT_COMMANDS, CompletionResult, FilePathProvider, ListItem
 
 
 @pytest.fixture

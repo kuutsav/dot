@@ -1,6 +1,6 @@
 import pytest
 
-from dot.tools.edit import EditParams, EditTool
+from kon.tools.edit import EditParams, EditTool
 
 
 @pytest.fixture

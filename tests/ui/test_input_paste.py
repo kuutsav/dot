@@ -1,4 +1,4 @@
-from dot.ui.input import InputBox
+from kon.ui.input import InputBox
 
 
 class _FakeTextArea:

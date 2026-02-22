@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from dot.core.types import (
+from kon.core.types import (
     AssistantMessage,
     StopReason,
     TextContent,
@@ -11,7 +11,7 @@ from dot.core.types import (
     Usage,
     UserMessage,
 )
-from dot.session import (
+from kon.session import (
     CompactionEntry,
     CustomMessageEntry,
     MessageEntry,
@@ -49,7 +49,7 @@ def thinking_message():
 
 
 def test_round_trip_basic_messages(tmp_path, user_message, assistant_message, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     # Create session
     session = Session.create("/test/project")
@@ -86,7 +86,7 @@ def test_round_trip_basic_messages(tmp_path, user_message, assistant_message, mo
 
 
 def test_round_trip_with_thinking(tmp_path, thinking_message, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
     session.append_message(thinking_message)
@@ -103,7 +103,7 @@ def test_round_trip_with_thinking(tmp_path, thinking_message, monkeypatch):
 
 
 def test_round_trip_all_entry_types(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -154,7 +154,7 @@ def test_round_trip_all_entry_types(tmp_path, monkeypatch):
 
 
 def test_round_trip_parent_id_linking(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -180,7 +180,7 @@ def test_round_trip_parent_id_linking(tmp_path, monkeypatch):
 
 
 def test_round_trip_session_properties(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create(
         "/test/project", provider="anthropic", model_id="claude-3-opus", thinking_level="high"
@@ -210,7 +210,7 @@ def test_round_trip_session_properties(tmp_path, monkeypatch):
 
 
 def test_round_trip_get_entry_by_id(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -250,7 +250,7 @@ def test_round_trip_no_persistence_mode(tmp_path, monkeypatch):
 
 
 def test_round_trip_empty_session(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -274,7 +274,7 @@ def test_round_trip_empty_session(tmp_path, monkeypatch):
 
 
 def test_round_trip_multiple_messages(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -300,7 +300,7 @@ def test_round_trip_multiple_messages(tmp_path, monkeypatch):
 
 
 def test_round_trip_with_tool_calls(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -328,7 +328,7 @@ def test_round_trip_with_tool_calls(tmp_path, monkeypatch):
 
 
 def test_round_trip_session_file_format(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -360,7 +360,7 @@ def test_round_trip_session_file_format(tmp_path, monkeypatch):
 
 
 def test_round_trip_unique_entry_ids(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -386,7 +386,7 @@ def test_round_trip_unique_entry_ids(tmp_path, monkeypatch):
 
 
 def test_round_trip_mixed_content_types(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -424,7 +424,7 @@ def test_round_trip_mixed_content_types(tmp_path, monkeypatch):
 
 
 def test_round_trip_session_info_property(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
 
@@ -446,7 +446,7 @@ def test_round_trip_session_info_property(tmp_path, monkeypatch):
 
 
 def test_round_trip_model_property_changes(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project", provider="openai", model_id="gpt-3.5")
 
@@ -491,7 +491,7 @@ def test_get_last_assistant_text_returns_none_when_latest_has_no_text():
 
 
 def test_continue_by_id_exact_match(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
     session.append_message(AssistantMessage(content=[TextContent(text="Response")]))
@@ -501,7 +501,7 @@ def test_continue_by_id_exact_match(tmp_path, monkeypatch):
 
 
 def test_continue_by_id_unique_prefix_match(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
     session.append_message(AssistantMessage(content=[TextContent(text="Response")]))
@@ -512,7 +512,7 @@ def test_continue_by_id_unique_prefix_match(tmp_path, monkeypatch):
 
 
 def test_continue_by_id_not_found(tmp_path, monkeypatch):
-    monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     session = Session.create("/test/project")
     session.append_message(AssistantMessage(content=[TextContent(text="Response")]))

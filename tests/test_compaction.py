@@ -1,6 +1,6 @@
-from dot.config import Config
-from dot.core.compaction import is_overflow
-from dot.core.types import (
+from kon.config import Config
+from kon.core.compaction import is_overflow
+from kon.core.types import (
     AssistantMessage,
     TextContent,
     ToolCall,
@@ -8,7 +8,7 @@ from dot.core.types import (
     Usage,
     UserMessage,
 )
-from dot.session import CompactionEntry, Session
+from kon.session import CompactionEntry, Session
 
 # ---------------------------------------------------------------------------
 # is_overflow tests
@@ -245,7 +245,7 @@ class TestSessionCompactedMessages:
 
 class TestCompactionPersistence:
     def test_compaction_entry_round_trip(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+        monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
         session = Session.create("/test/project")
         session.append_message(UserMessage(content="Hello"))
@@ -273,7 +273,7 @@ class TestCompactionPersistence:
         assert compaction_entries[0].details == {"model": "test"}
 
     def test_loaded_session_messages_are_compacted(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("dot.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+        monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
         session = Session.create("/test/project")
         session.append_message(UserMessage(content="Old"))
