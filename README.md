@@ -248,7 +248,8 @@ Most important knobs:
 - `llm.default_thinking_level`
 - `llm.system_prompt` (**you can fully override Kon’s system prompt here**)
 - `llm.tool_call_idle_timeout_seconds` (fallback timeout for stalled tool-call streaming)
-- `compaction.on_overflow`, `compaction.buffer_tokens`, `compaction.default_context_window`
+- `compaction.on_overflow`, `compaction.buffer_tokens`
+- `agent.max_turns`, `agent.default_context_window`
 
 You can also theme the UI via `[ui.colors]` values.
 

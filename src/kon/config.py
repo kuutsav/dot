@@ -65,6 +65,10 @@ class LLMConfig(BaseModel):
 class CompactionConfig(BaseModel):
     on_overflow: OnOverflowMode = "continue"
     buffer_tokens: int = 20000
+
+
+class AgentConfig(BaseModel):
+    max_turns: int = 500
     default_context_window: int = 200000
 
 
@@ -72,6 +76,7 @@ class ConfigSchema(BaseModel):
     llm: LLMConfig
     ui: UIConfig
     compaction: CompactionConfig
+    agent: AgentConfig
 
 
 class _BinariesConfig:
@@ -125,6 +130,10 @@ class Config:
     @property
     def compaction(self) -> CompactionConfig:
         return self._parsed.compaction
+
+    @property
+    def agent(self) -> AgentConfig:
+        return self._parsed.agent
 
     @property
     def binaries(self) -> _BinariesConfig:

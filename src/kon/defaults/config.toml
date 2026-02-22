@@ -21,6 +21,9 @@ You help users by reading, searching, executing commands, editing code, and writ
 [compaction]
 on_overflow = "continue" # "continue" or "pause"
 buffer_tokens = 20000
+
+[agent]
+max_turns = 500
 default_context_window = 200000
 
 [ui.colors]

@@ -53,7 +53,7 @@ class InfoBar(Vertical):
         self._git_branch = get_git_branch(cwd)
         self._model = model
         self._model_provider: str | None = None
-        self._context_window = context_window or config.compaction.default_context_window
+        self._context_window = context_window or config.agent.default_context_window
         self._session_id = session_id
         self._thinking_level = thinking_level or config.llm.default_thinking_level
         self._hide_thinking = hide_thinking

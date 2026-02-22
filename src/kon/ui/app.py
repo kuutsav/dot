@@ -567,7 +567,6 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             tools = get_tools(DEFAULT_TOOLS)
             model_info = get_model(self._model, self._model_provider)
             agent_config = AgentConfig(
-                max_turns=50,
                 system_prompt=self._get_system_prompt(),
                 context_window=model_info.context_window if model_info else None,
                 max_output_tokens=model_info.max_tokens if model_info else None,

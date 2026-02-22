@@ -76,7 +76,7 @@ def build_system_prompt(cwd: str, context: Context | None = None) -> str:
 
 @dataclass
 class AgentConfig:
-    max_turns: int = 200
+    max_turns: int | None = None
     system_prompt: str | None = None
     cwd: str | None = None
     context: Context | None = None
@@ -137,7 +137,12 @@ class Agent:
         system_prompt = self.config.system_prompt or build_system_prompt(cwd, self.config.context)
 
         try:
-            while turn < self.config.max_turns:
+            max_turns = (
+                self.config.max_turns
+                if self.config.max_turns is not None
+                else kon_config.agent.max_turns
+            )
+            while turn < max_turns:
                 if cancel_event and cancel_event.is_set():
                     was_interrupted = True
                     stop_reason = StopReason.INTERRUPTED
@@ -194,7 +199,7 @@ class Agent:
                 if stop_reason != StopReason.TOOL_USE:
                     break
 
-            if turn >= self.config.max_turns and not was_interrupted:
+            if turn >= max_turns and not was_interrupted:
                 stop_reason = StopReason.LENGTH
 
         except Exception as e:  # intentionally broad — top-level boundary; crash = broken TUI
@@ -219,7 +224,7 @@ class Agent:
         if last_usage is None:
             return
 
-        context_window = self.config.context_window or kon_config.compaction.default_context_window
+        context_window = self.config.context_window or kon_config.agent.default_context_window
         max_output = self.config.max_output_tokens or self.provider.config.max_tokens
         buffer_tokens = kon_config.compaction.buffer_tokens
 

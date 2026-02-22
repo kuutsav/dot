@@ -318,13 +318,13 @@ class TestCompactionConfig:
         cfg = Config({})
         assert cfg.compaction.on_overflow == "continue"
         assert cfg.compaction.buffer_tokens == 20_000
-        assert cfg.compaction.default_context_window == 200_000
+        assert cfg.agent.default_context_window == 200_000
 
     def test_config_override(self):
         cfg = Config({"compaction": {"on_overflow": "pause", "buffer_tokens": 10_000}})
         assert cfg.compaction.on_overflow == "pause"
         assert cfg.compaction.buffer_tokens == 10_000
-        assert cfg.compaction.default_context_window == 200_000
+        assert cfg.agent.default_context_window == 200_000
 
     def test_compaction_colors_default(self):
         cfg = Config({})
