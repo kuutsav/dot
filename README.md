@@ -19,14 +19,6 @@ $ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
  108 kon
 ```
 
-## Not supported
-
-Some features you might expect in other coding agents are not part of Kon's design philosophy:
-
-- **MCP servers** – Use skills instead; they're simpler and give you full control
-- **Sandbox environments** – Kon runs directly on your machine for simplicity; use Docker or VMs if you need isolation
-- **Checkpoint restores** – Not currently supported; may be added in the future
-
 ## Setup
 
 ### Warning
@@ -178,6 +170,14 @@ Detailed instructions for the agent...
 ```
 
 For skills with scripts, see [Agent Skills Documentation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
+
+## Not supported
+
+Some features you might expect in other coding agents are not part of Kon's design philosophy:
+
+- **MCP servers** – Use skills instead; they're simpler and give you full control
+- **Sandbox environments** – Kon runs directly on your machine for simplicity; use Docker or VMs if you need isolation
+- **Checkpoint restores** – Not currently supported; may be added in the future
 
 ## Architecture
 
