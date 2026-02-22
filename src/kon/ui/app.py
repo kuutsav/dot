@@ -66,7 +66,7 @@ from .widgets import InfoBar, QueueDisplay, StatusLine, format_path
 VERSION = "0.1.0"
 
 _COPILOT_API_TYPES: frozenset[ApiType] = frozenset(
-    {ApiType.GITHUB_COPILOT, ApiType.OPENAI_RESPONSES, ApiType.ANTHROPIC_COPILOT}
+    {ApiType.GITHUB_COPILOT, ApiType.GITHUB_COPILOT_RESPONSES, ApiType.ANTHROPIC_COPILOT}
 )
 
 _OPENAI_OAUTH_API_TYPES: frozenset[ApiType] = frozenset({ApiType.OPENAI_CODEX_RESPONSES})

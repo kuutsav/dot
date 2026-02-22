@@ -1,6 +1,6 @@
 from kon.llm import resolve_provider_api_type
 from kon.llm.models import ApiType
-from kon.ui.app import _default_base_url_for_api
+from kon.ui.app import _COPILOT_API_TYPES, _default_base_url_for_api
 
 
 def test_resolve_provider_api_type_known_provider():
@@ -25,3 +25,10 @@ def test_default_base_url_for_api_openai_completions(monkeypatch):
 
 def test_default_base_url_for_api_non_openai_completions():
     assert _default_base_url_for_api(ApiType.ANTHROPIC_COPILOT) is None
+
+
+def test_copilot_api_types_only_include_copilot_apis():
+    assert ApiType.GITHUB_COPILOT in _COPILOT_API_TYPES
+    assert ApiType.GITHUB_COPILOT_RESPONSES in _COPILOT_API_TYPES
+    assert ApiType.ANTHROPIC_COPILOT in _COPILOT_API_TYPES
+    assert ApiType.OPENAI_RESPONSES not in _COPILOT_API_TYPES
