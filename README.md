@@ -36,7 +36,7 @@ This installs `kon` globally as a CLI tool.
 ### Install from source (advanced)
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/kuutsav/kon
 cd kon
 uv tool install .
 ```
