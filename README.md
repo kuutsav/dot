@@ -19,9 +19,13 @@ $ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
  108 kon
 ```
 
-> [!NOTE]
-> There are no plans to support MCP servers (use skills). Support for sub-agents will be added soon (mainly to test if local LLMs can make for good search agents).
+## Not supported
 
+Some features you might expect in other coding agents are not part of Kon's design philosophy:
+
+- **MCP servers** – Use skills instead; they're simpler and give you full control
+- **Sandbox environments** – Kon runs directly on your machine for simplicity; use Docker or VMs if you need isolation
+- **Checkpoint restores** – Not currently supported; may be added in the future
 
 ## Setup
 
