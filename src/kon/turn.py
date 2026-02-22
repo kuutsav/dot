@@ -77,7 +77,6 @@ _TOOL_ARGS_TOKEN_CHUNK_UPDATE_INTERVAL = 4
 
 
 def _count_tokens(text: str) -> int:
-    """Estimate token count from text (approx 4 chars per token)."""
     return len(text) // 4
 
 
