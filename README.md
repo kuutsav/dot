@@ -21,11 +21,6 @@ $ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
 
 ## Setup
 
-### Warning
-
-> [!WARNING]
-> Platform support: macOS and Linux are supported; Windows is not tested yet.
-
 ### Prerequisites
 
 Python 3.12+ and [uv](https://github.com/astral-sh/uv).
@@ -45,6 +40,9 @@ git clone <repository-url>
 cd kon
 uv tool install .
 ```
+
+> [!WARNING]
+> Platform support: macOS and Linux are supported; Windows is not tested yet.
 
 ### Run
 
