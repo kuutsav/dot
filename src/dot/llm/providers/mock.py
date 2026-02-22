@@ -14,8 +14,10 @@ Scenarios (set via scenario parameter):
 - "stream_error": emit StreamError during streaming
 - "unknown_tool": call unknown tool
 - "long_text": multiple text chunks
+- "tool_hang": emits a tool call and then never sends StreamDone
 """
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from ...core.types import (
@@ -126,6 +128,15 @@ class MockProvider(BaseProvider):
                     yield StreamDone(stop_reason=StopReason.STOP)
 
                 return long_iter()
+
+            case "tool_hang":
+
+                async def tool_hang_iter():
+                    yield ToolCallStart(id="call-1", name="read", index=0)
+                    yield ToolCallDelta(index=0, arguments_delta='{"path": "test.txt"}')
+                    await asyncio.sleep(3600)
+
+                return tool_hang_iter()
 
             case _:
                 # Fallback to default

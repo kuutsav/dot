@@ -155,6 +155,12 @@ class ErrorEvent:
 
 
 @dataclass
+class WarningEvent:
+    type: Literal["warning"] = "warning"
+    warning: str = ""
+
+
+@dataclass
 class InterruptedEvent:
     type: Literal["interrupted"] = "interrupted"
     message: str = "Interrupted by user"
@@ -179,6 +185,7 @@ StreamEvent = (
     | RetryEvent
     | TurnEndEvent
     | ErrorEvent
+    | WarningEvent
     | InterruptedEvent
 )
 

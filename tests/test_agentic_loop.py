@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from dot import Config, reset_config, set_config
 from dot.core.types import StopReason, TextContent, UserMessage
 from dot.events import (
     AgentEndEvent,
@@ -20,6 +21,7 @@ from dot.events import (
     ToolStartEvent,
     TurnEndEvent,
     TurnStartEvent,
+    WarningEvent,
 )
 from dot.llm.providers import MockProvider
 from dot.loop import Agent, AgentConfig
@@ -438,6 +440,29 @@ async def test_run_single_turn_long_text_scenario(sample_messages, tools):
 
     turn_end = next(e for e in events if isinstance(e, TurnEndEvent))
     assert turn_end.stop_reason == StopReason.STOP
+
+
+@pytest.mark.asyncio
+async def test_run_single_turn_tool_hang_timeout_fallback(sample_messages, tools):
+    set_config(Config({"llm": {"tool_call_idle_timeout_seconds": 0.01}}))
+    try:
+        provider = MockProvider(scenario="tool_hang")
+        events = []
+
+        async for event in run_single_turn(provider, sample_messages, tools, turn=1):
+            events.append(event)
+    finally:
+        reset_config()
+
+    warning_event = next(e for e in events if isinstance(e, WarningEvent))
+    assert "Tool-call stream stalled" in warning_event.warning
+
+    tool_end = next(e for e in events if isinstance(e, ToolEndEvent))
+    assert tool_end.tool_name == "read"
+
+    turn_end = next(e for e in events if isinstance(e, TurnEndEvent))
+    assert turn_end.stop_reason == StopReason.TOOL_USE
+    assert len(turn_end.tool_results) == 1
 
 
 @pytest.mark.asyncio

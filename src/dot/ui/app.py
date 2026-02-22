@@ -36,6 +36,7 @@ from ..events import (
     ToolStartEvent,
     TurnEndEvent,
     TurnStartEvent,
+    WarningEvent,
 )
 from ..llm import (
     API_TYPE_TO_PROVIDER_CLASS,
@@ -259,7 +260,7 @@ class DotApp(CommandsMixin, SessionUIMixin, App[None]):
         )
 
         for warning in consume_config_warnings():
-            chat.add_info_message(warning, error=True)
+            chat.add_info_message(warning, warning=True)
 
         info_bar = self.query_one("#info-bar", InfoBar)
         if self._session:
@@ -638,6 +639,9 @@ class DotApp(CommandsMixin, SessionUIMixin, App[None]):
 
                         case ErrorEvent(error=e):
                             chat.add_info_message(str(e), error=True)
+
+                        case WarningEvent(warning=w):
+                            chat.add_info_message(str(w), warning=True)
 
                         case AgentEndEvent(stop_reason=reason):
                             if reason == StopReason.INTERRUPTED:

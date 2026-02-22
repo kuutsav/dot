@@ -29,6 +29,7 @@ from enum import StrEnum
 
 from pydantic import ValidationError
 
+from . import config as dot_config
 from .core.types import (
     AssistantMessage,
     ImageContent,
@@ -62,12 +63,14 @@ from .events import (
     ToolResultEvent,
     ToolStartEvent,
     TurnEndEvent,
+    WarningEvent,
 )
 from .llm import BaseProvider
 from .llm.base import LLMStream
 from .tools import BaseTool, get_tool, get_tool_definitions
 
 _STREAM_EXHAUSTED = object()
+_DEFAULT_TOOL_CALL_IDLE_TIMEOUT_SECONDS = 10.0
 
 
 class StreamState(StrEnum):
@@ -94,6 +97,13 @@ async def _safe_anext(aiter):
         return await aiter.__anext__()
     except StopAsyncIteration:
         return _STREAM_EXHAUSTED
+
+
+def _get_tool_call_idle_timeout_seconds() -> float | None:
+    timeout = dot_config.llm.tool_call_idle_timeout_seconds
+    if timeout <= 0:
+        return None
+    return timeout or _DEFAULT_TOOL_CALL_IDLE_TIMEOUT_SECONDS
 
 
 def _create_skipped_tool_result(
@@ -251,6 +261,7 @@ async def run_single_turn(
     # not just when the next chunk happens to arrive from the API.
     stream_iter = stream.__aiter__()
     cancel_task = asyncio.create_task(cancel_event.wait()) if cancel_event else None
+    tool_call_idle_timeout_seconds = _get_tool_call_idle_timeout_seconds()
 
     while True:
         if cancel_event and cancel_event.is_set():
@@ -259,11 +270,41 @@ async def run_single_turn(
             break
 
         next_task = asyncio.create_task(_safe_anext(stream_iter))
+        chunk_timeout = (
+            tool_call_idle_timeout_seconds
+            if (
+                tool_call_idle_timeout_seconds is not None
+                and (current_state == StreamState.TOOL_CALL or pending_tool_calls)
+            )
+            else None
+        )
 
         if cancel_task and not cancel_task.done():
             done, _ = await asyncio.wait(
-                {next_task, cancel_task}, return_when=asyncio.FIRST_COMPLETED
+                {next_task, cancel_task},
+                timeout=chunk_timeout,
+                return_when=asyncio.FIRST_COMPLETED,
             )
+
+            if not done:
+                next_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await next_task
+                timeout_secs = chunk_timeout or 0
+                yield WarningEvent(
+                    warning=(
+                        f"Tool-call stream stalled for {timeout_secs:g}s; "
+                        "continuing with collected arguments."
+                    )
+                )
+                # Some local providers intermittently miss terminal stream events
+                # after a tool call is fully emitted. If we're already in a tool
+                # call path, finalize what we have and continue execution.
+                for finalize_event in _finalize_current_state(include_empty=False):
+                    yield finalize_event
+                if pending_tool_calls and stop_reason == StopReason.STOP:
+                    stop_reason = StopReason.TOOL_USE
+                break
 
             if cancel_task in done:
                 next_task.cancel()
@@ -274,10 +315,33 @@ async def run_single_turn(
                 break
 
             chunk = next_task.result()
+        elif chunk_timeout is not None:
+            try:
+                chunk = await asyncio.wait_for(next_task, timeout=chunk_timeout)
+            except TimeoutError:
+                next_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await next_task
+                timeout_secs = chunk_timeout or 0
+                yield WarningEvent(
+                    warning=(
+                        f"Tool-call stream stalled for {timeout_secs:g}s; "
+                        "continuing with collected arguments."
+                    )
+                )
+                for finalize_event in _finalize_current_state(include_empty=False):
+                    yield finalize_event
+                if pending_tool_calls and stop_reason == StopReason.STOP:
+                    stop_reason = StopReason.TOOL_USE
+                break
         else:
             chunk = await next_task
 
         if chunk is _STREAM_EXHAUSTED:
+            for finalize_event in _finalize_current_state():
+                yield finalize_event
+            if pending_tool_calls and stop_reason == StopReason.STOP:
+                stop_reason = StopReason.TOOL_USE
             break
 
         match chunk:

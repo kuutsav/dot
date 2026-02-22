@@ -220,10 +220,17 @@ class ChatLog(VerticalScroll):
         self.mount(label)
         self._scroll_if_anchored(animate=False)
 
-    def add_info_message(self, message: str, error: bool = False) -> None:
+    def add_info_message(self, message: str, error: bool = False, warning: bool = False) -> None:
         dim_color = config.ui.colors.dim
         error_color = config.ui.colors.error
-        style = error_color if error else dim_color
+        warning_color = config.ui.colors.warning
+
+        style = dim_color
+        if warning:
+            style = warning_color
+        if error:
+            style = error_color
+
         text = Text(message, style=style)
         label = Label(text)
         label.add_class("info-message")

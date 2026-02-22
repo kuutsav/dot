@@ -2,6 +2,7 @@
 default_provider = "openai-codex" # "zhipu", "github-copilot", "openai-codex"
 default_model = "gpt-5.3-codex"
 default_thinking_level = "high"
+tool_call_idle_timeout_seconds = 10
 system_prompt = """You are an expert coding assistant called `Dot`.
 You help users by reading, searching, executing commands, editing code, and writing new files.
 
@@ -30,6 +31,7 @@ accent = "#8ABEB7"
 markdown_code = "#689d6a"
 selected = "#689d6a"
 error = "#e06c75"
+warning = "#e5c07b"
 diff_added = "#b5bd68"
 diff_removed = "#cc6666"
 

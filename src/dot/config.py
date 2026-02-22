@@ -43,6 +43,7 @@ class ColorsConfig(BaseModel):
     markdown_code: str
     selected: str
     error: str
+    warning: str
     diff_added: str
     diff_removed: str
     tool_bg: ToolBgConfig
@@ -58,6 +59,7 @@ class LLMConfig(BaseModel):
     default_model: str
     default_thinking_level: str
     system_prompt: str
+    tool_call_idle_timeout_seconds: float = 10
 
 
 class CompactionConfig(BaseModel):

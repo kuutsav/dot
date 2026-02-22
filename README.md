@@ -215,6 +215,7 @@ Most important knobs:
 - `llm.default_model`
 - `llm.default_thinking_level`
 - `llm.system_prompt` (**you can fully override Dot’s system prompt here**)
+- `llm.tool_call_idle_timeout_seconds` (fallback timeout for stalled tool-call streaming)
 - `compaction.on_overflow`, `compaction.buffer_tokens`, `compaction.default_context_window`
 
 You can also theme the UI via `[ui.colors]` values.
@@ -226,6 +227,7 @@ Example:
 default_provider = "openai-codex"
 default_model = "gpt-5.3-codex"
 default_thinking_level = "high"
+tool_call_idle_timeout_seconds = 10
 system_prompt = """Your custom system prompt here"""
 
 [compaction]

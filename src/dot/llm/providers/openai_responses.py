@@ -75,13 +75,18 @@ class OpenAIResponsesProvider(BaseProvider):
         current_text = ""
         current_thinking = ""
         current_tool_calls: dict[str, dict[str, Any]] = {}
+        call_key_by_item_id: dict[str, str] = {}
+        current_tool_call_key: str | None = None
         tool_call_index = 0
 
         try:
             async for event in response_stream:
                 event_type = event.type
 
-                if event_type == "response.reasoning_summary_text.delta":
+                if event_type in (
+                    "response.reasoning_summary_text.delta",
+                    "response.reasoning_text.delta",
+                ):
                     delta = event.delta
                     current_thinking += delta
                     yield ThinkPart(think=delta)
@@ -94,23 +99,91 @@ class OpenAIResponsesProvider(BaseProvider):
                 elif event_type == "response.output_item.added":
                     item = event.item
                     if item.type == "function_call":
-                        call_id = f"{item.call_id}|{item.id}"
+                        item_id = item.id or ""
+                        call_id = f"{item.call_id}|{item_id}"
                         current_tool_calls[call_id] = {
                             "id": call_id,
                             "name": item.name,
-                            "arguments": "",
+                            "arguments": item.arguments or "",
+                            "index": tool_call_index,
                         }
+                        if item_id:
+                            call_key_by_item_id[item_id] = call_id
+                        current_tool_call_key = call_id
                         yield ToolCallStart(index=tool_call_index, id=call_id, name=item.name)
                         tool_call_index += 1
 
                 elif event_type == "response.function_call_arguments.delta":
-                    for _, call_data in current_tool_calls.items():
-                        call_data["arguments"] += event.delta
-                        yield ToolCallDelta(index=tool_call_index - 1, arguments_delta=event.delta)
-                        break
+                    item_id = getattr(event, "item_id", None)
+                    call_key = (
+                        call_key_by_item_id.get(item_id) if item_id else current_tool_call_key
+                    )
+                    if not call_key:
+                        continue
+                    call_data = current_tool_calls.get(call_key)
+                    if not call_data:
+                        continue
+                    delta = event.delta
+                    call_data["arguments"] += delta
+                    yield ToolCallDelta(index=call_data["index"], arguments_delta=delta)
 
-                elif event_type == "response.completed":
-                    response = event.response
+                elif event_type == "response.function_call_arguments.done":
+                    item_id = getattr(event, "item_id", None)
+                    call_key = (
+                        call_key_by_item_id.get(item_id) if item_id else current_tool_call_key
+                    )
+                    if not call_key:
+                        continue
+                    call_data = current_tool_calls.get(call_key)
+                    if not call_data:
+                        continue
+                    final_args = event.arguments
+                    if final_args is None:
+                        continue
+                    current_args = call_data["arguments"]
+                    if final_args.startswith(current_args):
+                        missing = final_args[len(current_args) :]
+                        if missing:
+                            call_data["arguments"] += missing
+                            yield ToolCallDelta(index=call_data["index"], arguments_delta=missing)
+                    else:
+                        call_data["arguments"] = final_args
+                        yield ToolCallDelta(index=call_data["index"], arguments_delta=final_args)
+
+                elif event_type == "response.output_item.done":
+                    item = event.item
+                    if item.type == "function_call":
+                        item_id = item.id or ""
+                        call_id = f"{item.call_id}|{item_id}"
+                        call_key = current_tool_call_key
+                        if call_id in current_tool_calls:
+                            call_key = call_id
+                        elif item_id and item_id in call_key_by_item_id:
+                            call_key = call_key_by_item_id[item_id]
+                        if (
+                            not call_key
+                            or call_key not in current_tool_calls
+                            or item.arguments is None
+                        ):
+                            continue
+                        call_data = current_tool_calls[call_key]
+                        current_args = call_data["arguments"]
+                        final_args = item.arguments
+                        if final_args.startswith(current_args):
+                            missing = final_args[len(current_args) :]
+                            if missing:
+                                call_data["arguments"] += missing
+                                yield ToolCallDelta(
+                                    index=call_data["index"], arguments_delta=missing
+                                )
+                        elif final_args != current_args:
+                            call_data["arguments"] = final_args
+                            yield ToolCallDelta(
+                                index=call_data["index"], arguments_delta=final_args
+                            )
+
+                elif event_type in ("response.completed", "response.done"):
+                    response = getattr(event, "response", None)
                     if response and response.usage:
                         cached = 0
                         if response.usage.input_tokens_details:
@@ -143,7 +216,9 @@ class OpenAIResponsesProvider(BaseProvider):
                             ToolCall(id=call_data["id"], name=call_data["name"], arguments=args)
                         )
 
-                    stop_reason = self._map_stop_reason(response.status if response else None)
+                    stop_reason = self._map_stop_reason(
+                        response.status if response and hasattr(response, "status") else None
+                    )
                     if current_tool_calls and stop_reason == StopReason.STOP:
                         stop_reason = StopReason.TOOL_USE
 
