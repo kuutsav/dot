@@ -9,7 +9,8 @@ from .openai_responses import OpenAIResponsesProvider
 
 API_TYPE_TO_PROVIDER_CLASS: dict[ApiType, type[BaseProvider]] = {
     ApiType.GITHUB_COPILOT: CopilotProvider,
-    ApiType.OPENAI_RESPONSES: CopilotResponsesProvider,
+    ApiType.GITHUB_COPILOT_RESPONSES: CopilotResponsesProvider,
+    ApiType.OPENAI_RESPONSES: OpenAIResponsesProvider,
     ApiType.OPENAI_CODEX_RESPONSES: OpenAICodexResponsesProvider,
     ApiType.ANTHROPIC_COPILOT: CopilotAnthropicProvider,
     ApiType.OPENAI_COMPLETIONS: OpenAICompletionsProvider,

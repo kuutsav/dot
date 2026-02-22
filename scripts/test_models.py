@@ -71,17 +71,17 @@ def _get_provider_for_model(model: Model, thinking_level: str) -> BaseProvider |
             return None
         return CopilotAnthropicProvider(config)
 
+    elif model.api == ApiType.GITHUB_COPILOT_RESPONSES:
+        if not is_copilot_logged_in():
+            return None
+        return CopilotResponsesProvider(config)
+
     elif model.api == ApiType.OPENAI_RESPONSES:
-        if model.provider == "github-copilot":
-            if not is_copilot_logged_in():
-                return None
-            return CopilotResponsesProvider(config)
-        else:
-            api_key = os.environ.get("OPENAI_API_KEY")
-            if not api_key:
-                return None
-            config.api_key = api_key
-            return OpenAIResponsesProvider(config)
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return None
+        config.api_key = api_key
+        return OpenAIResponsesProvider(config)
 
     elif model.api == ApiType.GITHUB_COPILOT:
         if not is_copilot_logged_in():

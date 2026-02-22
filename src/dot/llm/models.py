@@ -16,6 +16,7 @@ class ApiType(Enum):
     OPENAI_CODEX_RESPONSES = "openai-codex-responses"
     ANTHROPIC_COPILOT = "anthropic-copilot"
     GITHUB_COPILOT = "github-copilot"
+    GITHUB_COPILOT_RESPONSES = "github-copilot-responses"
 
 
 @dataclass
@@ -94,7 +95,7 @@ MODELS: dict[str, Model] = {
     "gpt-5.3-codex-copilot": Model(
         id="gpt-5.3-codex",
         provider="github-copilot",
-        api=ApiType.OPENAI_RESPONSES,
+        api=ApiType.GITHUB_COPILOT_RESPONSES,
         base_url="https://api.individual.githubcopilot.com",
         max_tokens=8192 * 2,
         supports_images=True,
