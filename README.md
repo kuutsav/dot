@@ -206,20 +206,25 @@ Kon works well with local models exposed through an OpenAI-compatible `/v1` API.
 To run a local model using llama-server:
 
 ```bash
-./llama-server -m <models-dir>/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-Q4_K_M.gguf -n 8192 -c 64000
+./llama-server -m <models-dir>/GLM-4.7-Flash-GGUF/GLM-4.7-Flash-Q4_K_M.gguf \
+    -n 8192 \
+    -c 64000
 
 # Then use Kon with:
-kon --model zai-org/glm-4.7-flash --provider openai --base-url http://localhost:8080/v1 --api-key ""
+kon --model zai-org/glm-4.7-flash \
+    --provider openai \
+    --base-url http://localhost:8080/v1 \
+    --api-key ""
 ```
 
-For detailed configuration and performance benchmarks, see [LOCAL.md](LOCAL.md).
+`GLM-4.7-Flash-Q4` ran at 80-90 tps on my i7-14700F × 28, 64GB RAM, 24GB VRAM (RTX 3090)
 
 ### All Supported Providers
 
 | Model (local=*) | Provider | Thinking | Vision |
 | ----- | -------- | -------- | ------ |
-| `*zai-org/glm-4.7-flash` | OpenAI Responses | Yes | No |
-| `*qwen/qwen3-coder-next` | OpenAI Responses | Yes | No |
+| `*zai-org/glm-4.7-flash` | OpenAI Completions | Yes | No |
+| `*qwen/qwen3-coder-next` | OpenAI Completions | Yes | No |
 | `glm-4.7` | ZhiPu (OpenAI Completions) | Yes | No |
 | `glm-5` | ZhiPu (OpenAI Completions) | Yes | No |
 | `claude-sonnet-4.5` | GitHub Copilot | Yes | Yes |
