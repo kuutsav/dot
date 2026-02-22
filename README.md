@@ -1,8 +1,8 @@
 # Kon
 
-![PyPI](https://img.shields.io/pypi/v/kon-coding-agent)
-![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+[![PyPI](https://img.shields.io/pypi/v/kon-coding-agent)](https://pypi.org/project/kon-coding-agent/)
+[![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/release/python-3120/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Kon is a minimal coding agent that just works.
 
