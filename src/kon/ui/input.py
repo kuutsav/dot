@@ -21,6 +21,7 @@ from .autocomplete import (
 )
 from .floating_list import ListItem
 from .path_complete import PathComplete
+from .prompt_history import PromptHistory
 
 if TYPE_CHECKING:
     pass
@@ -93,9 +94,7 @@ class InputBox(Vertical):
     ) -> None:
         super().__init__(id=id, classes=classes)
         self._cwd = cwd or os.getcwd()
-        self._history: list[str] = []
-        self._history_index: int = -1
-        self._history_temp: str = ""
+        self._history = PromptHistory()
 
         # Autocomplete providers
         self._slash_provider = SlashCommandProvider(DEFAULT_COMMANDS.copy())
@@ -460,33 +459,15 @@ class InputBox(Vertical):
     # -------------------------------------------------------------------------
 
     def _add_to_history(self, text: str) -> None:
-        if text and (not self._history or self._history[-1] != text):
-            self._history.append(text)
-        self._history_index = -1
-        self._history_temp = ""
+        self._history.append(text)
 
     def _history_navigate(self, direction: int) -> None:
-        if not self._history:
-            return
-
         textarea = self.query_one("#input-textarea", TextArea)
-
-        if self._history_index == -1:
-            self._history_temp = textarea.text
-
-        new_index = self._history_index + direction
-
-        if new_index < -1 or new_index >= len(self._history):
+        result = self._history.navigate(direction, textarea.text)
+        if result is None:
             return
-
-        self._history_index = new_index
-
         textarea.clear()
-        if self._history_index == -1:
-            textarea.insert(self._history_temp)
-        else:
-            history_item = self._history[-(self._history_index + 1)]
-            textarea.insert(history_item)
+        textarea.insert(result)
 
     # -------------------------------------------------------------------------
     # Messages

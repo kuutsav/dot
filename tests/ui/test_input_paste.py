@@ -70,4 +70,4 @@ def test_submit_keeps_display_text_but_expands_query_text() -> None:
     assert input_box._fake_textarea.cleared is True
     assert input_box._pastes == {}
     assert input_box._paste_counter == 0
-    assert input_box._history[-1] == f"prefix {pasted} suffix"
+    assert input_box._history._entries[-1] == f"prefix {pasted} suffix"
