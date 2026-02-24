@@ -4,11 +4,9 @@
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/release/python-3120/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Kon is a minimal coding agent that just works.
+Kon is a minimal coding agent with a tiny harness: about **215 tokens** for the system prompt and around **600 tokens** for tool definitions – so **under 1k tokens** before conversation context.
 
-It has a tiny harness: about **215 tokens** for the system prompt and around **600 tokens** for tool definitions – so **under 1k tokens** before conversation context.
-
-At the time of writing this README (**22 Feb 2026**), this repo has **108 files** and is easy to understand in a weekend. Here’s a rough file-count comparison against a couple of popular OSS coding agents:
+At the time of writing this README (**25 Feb 2026**), this repo has **112 files** and is easy to understand in a weekend. Here’s a rough file-count comparison against a couple of popular OSS coding agents:
 
 Others are of course more mature, support more models, include broader test coverage, and cover more surfaces. But if you want a truly minimal coding agent with batteries included – something you can understand, fork, and extend quickly – Kon might be interesting.
 
