@@ -57,6 +57,7 @@ class UIConfig(BaseModel):
 class LLMConfig(BaseModel):
     default_provider: str
     default_model: str
+    default_base_url: str = ""
     default_thinking_level: str
     system_prompt: str
     tool_call_idle_timeout_seconds: float = 60

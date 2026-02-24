@@ -136,7 +136,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             else (config.llm.default_provider if model is None else None)
         )
         self._api_key = api_key
-        self._base_url = base_url
+        self._base_url = base_url or config.llm.default_base_url or None
         self._resume_session = resume_session
         self._continue_recent = continue_recent
         self._thinking_level = thinking_level or config.llm.default_thinking_level
