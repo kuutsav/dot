@@ -275,17 +275,16 @@ class InputBox(Vertical):
         self.query_one("#input-textarea", TextArea).insert("\n")
 
     def action_cancel(self) -> None:
-        app = self.app
-        if getattr(app, "_is_running", False):
-            # While streaming, ESC should interrupt the agent, not clear input.
-            app.action_interrupt_agent()  # type: ignore
-            return
-
         if self._is_completing:
             self._is_completing = False
             self._active_provider = None
             self._completion_prefix = ""
             self.post_message(self.CompletionHide())
+            return
+
+        app = self.app
+        if getattr(app, "_is_running", False):
+            app.action_interrupt_agent()  # type: ignore
         else:
             self.clear()
 
