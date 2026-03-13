@@ -59,7 +59,8 @@ class InfoBar(Vertical):
         self._hide_thinking = hide_thinking
         self._input_tokens = 0
         self._output_tokens = 0
-        self._cached_tokens = 0
+        self._cache_read_tokens = 0
+        self._cache_write_tokens = 0
         self._context_tokens: int | None = None
         self.add_class("info-bar")
 
@@ -89,16 +90,13 @@ class InfoBar(Vertical):
             ctx = f"--/{format_tokens(self._context_window)}"
         parts.append(Text(ctx))
 
-        # Total usage with cached tokens in parentheses
-        if self._cached_tokens > 0:
-            cached = f"({format_tokens(self._cached_tokens)})"
-            input_t = format_tokens(self._input_tokens)
-            output_t = format_tokens(self._output_tokens)
-            usage = f"↑{input_t}{cached} ↓{output_t}"
-        else:
-            input_t = format_tokens(self._input_tokens)
-            output_t = format_tokens(self._output_tokens)
-            usage = f"↑{input_t} ↓{output_t}"
+        input_t = format_tokens(self._input_tokens)
+        output_t = format_tokens(self._output_tokens)
+        usage = f"↑{input_t} ↓{output_t}"
+        if self._cache_read_tokens > 0:
+            usage += f" R{format_tokens(self._cache_read_tokens)}"
+        if self._cache_write_tokens > 0:
+            usage += f" W{format_tokens(self._cache_write_tokens)}"
         parts.append(Text(usage))
 
         # Build string with kon separators
@@ -127,12 +125,19 @@ class InfoBar(Vertical):
         result.append(f" • {self._thinking_level}")
         return result
 
-    def update_tokens(self, input_tokens: int, output_tokens: int, cached_tokens: int = 0) -> None:
+    def update_tokens(
+        self,
+        input_tokens: int,
+        output_tokens: int,
+        cache_read_tokens: int = 0,
+        cache_write_tokens: int = 0,
+    ) -> None:
         self._input_tokens += input_tokens
         self._output_tokens += output_tokens
-        self._cached_tokens += cached_tokens
-        # Context size is the latest turn's total (input + output)
-        self._context_tokens = input_tokens + output_tokens
+        self._cache_read_tokens += cache_read_tokens
+        self._cache_write_tokens += cache_write_tokens
+        # Context size is latest turn input+output, with cache reads included.
+        self._context_tokens = input_tokens + output_tokens + cache_read_tokens
         self.query_one("#info-row1-right", Label).update(self._format_row1_right())
 
     def set_tokens(
@@ -140,11 +145,13 @@ class InfoBar(Vertical):
         input_tokens: int,
         output_tokens: int,
         context_tokens: int = 0,
-        cached_tokens: int = 0,
+        cache_read_tokens: int = 0,
+        cache_write_tokens: int = 0,
     ) -> None:
         self._input_tokens = input_tokens
         self._output_tokens = output_tokens
-        self._cached_tokens = cached_tokens
+        self._cache_read_tokens = cache_read_tokens
+        self._cache_write_tokens = cache_write_tokens
         self._context_tokens = context_tokens if context_tokens > 0 else None
         self.query_one("#info-row1-right", Label).update(self._format_row1_right())
 

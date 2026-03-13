@@ -163,8 +163,10 @@ class OpenAICompletionsProvider(BaseProvider):
             async for chunk in response:
                 if chunk.usage:
                     cached = getattr(chunk.usage.prompt_tokens_details, "cached_tokens", 0) or 0
+                    prompt_tokens = chunk.usage.prompt_tokens or 0
+                    non_cached_input = max(prompt_tokens - cached, 0)
                     llm_stream._usage = Usage(
-                        input_tokens=chunk.usage.prompt_tokens or 0,
+                        input_tokens=non_cached_input,
                         output_tokens=chunk.usage.completion_tokens or 0,
                         cache_read_tokens=cached,
                     )

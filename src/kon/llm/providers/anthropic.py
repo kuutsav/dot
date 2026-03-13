@@ -136,12 +136,14 @@ class AnthropicProvider(BaseProvider):
                         cache_read = (
                             getattr(event.message.usage, "cache_read_input_tokens", 0) or 0
                         )
-                        # Anthropic reports input_tokens excluding cached, so add them
-                        # for consistent context size tracking across providers
+                        cache_write = (
+                            getattr(event.message.usage, "cache_creation_input_tokens", 0) or 0
+                        )
                         llm_stream._usage = Usage(
-                            input_tokens=event.message.usage.input_tokens + cache_read,
+                            input_tokens=event.message.usage.input_tokens,
                             output_tokens=event.message.usage.output_tokens,
                             cache_read_tokens=cache_read,
+                            cache_write_tokens=cache_write,
                         )
 
                 elif isinstance(event, ContentBlockStartEvent):
@@ -180,12 +182,17 @@ class AnthropicProvider(BaseProvider):
                     if event.delta.stop_reason:
                         stop_reason = self._map_stop_reason(event.delta.stop_reason)
                     if event.usage and llm_stream._usage:
-                        # Update output tokens and cache read tokens
+                        cache_read = getattr(event.usage, "cache_read_input_tokens", None)
+                        cache_write = getattr(event.usage, "cache_creation_input_tokens", None)
                         llm_stream._usage = Usage(
                             input_tokens=llm_stream._usage.input_tokens,
                             output_tokens=event.usage.output_tokens,
-                            cache_read_tokens=getattr(event.usage, "cache_read_input_tokens", 0)
-                            or llm_stream._usage.cache_read_tokens,
+                            cache_read_tokens=cache_read
+                            if cache_read is not None
+                            else llm_stream._usage.cache_read_tokens,
+                            cache_write_tokens=cache_write
+                            if cache_write is not None
+                            else llm_stream._usage.cache_write_tokens,
                         )
 
                 elif isinstance(event, MessageStopEvent):

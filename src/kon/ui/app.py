@@ -257,6 +257,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             max_tokens=get_max_tokens(self._model),
             thinking_level=self._thinking_level,
             provider=self._model_provider,
+            session_id=self._session.id if self._session else None,
         )
 
         provider_error: str | None = None
@@ -332,9 +333,14 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             and self._session.entries
         ):
             self._render_session_entries(self._session)
-            input_t, output_t, context_t, cached_t = self._calculate_session_tokens(self._session)
-            info_bar.set_tokens(input_t, output_t, context_t, cached_t)
+            input_t, output_t, context_t, cache_read_t, cache_write_t = self._calculate_session_tokens(
+                self._session
+            )
+            info_bar.set_tokens(input_t, output_t, context_t, cache_read_t, cache_write_t)
             chat.add_info_message("Resumed session")
+
+        if self._provider and self._session:
+            self._provider.config.session_id = self._session.id
 
         self._startup_complete = True
         self._show_pending_update_notice_if_idle()
@@ -695,6 +701,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
                                     usage.input_tokens,
                                     usage.output_tokens,
                                     usage.cache_read_tokens,
+                                    usage.cache_write_tokens,
                                 )
 
                         case InterruptedEvent():

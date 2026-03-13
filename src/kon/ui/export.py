@@ -96,7 +96,7 @@ def _print_metadata(console: Console, session: Session, model_id: str, provider:
     header = session._header
 
     user_count = assistant_count = tool_call_count = 0
-    input_tokens = output_tokens = cache_read = 0
+    input_tokens = output_tokens = cache_read = cache_write = 0
 
     for entry in session.entries:
         if not isinstance(entry, MessageEntry):
@@ -113,8 +113,15 @@ def _print_metadata(console: Console, session: Session, model_id: str, provider:
                 input_tokens += msg.usage.input_tokens
                 output_tokens += msg.usage.output_tokens
                 cache_read += msg.usage.cache_read_tokens
+                cache_write += msg.usage.cache_write_tokens
 
     model_str = model_id if provider == "unknown" else f"{model_id} ({provider})"
+
+    token_parts = [f"↑{input_tokens:,}", f"↓{output_tokens:,}"]
+    if cache_read:
+        token_parts.append(f"R{cache_read:,}")
+    if cache_write:
+        token_parts.append(f"W{cache_write:,}")
 
     table = Table(show_header=False, box=None, padding=(0, 1))
     table.add_column(style=dim)
@@ -127,7 +134,7 @@ def _print_metadata(console: Console, session: Session, model_id: str, provider:
     table.add_row(
         "Messages", f"{user_count} user, {assistant_count} assistant, {tool_call_count} tool calls"
     )
-    table.add_row("Tokens", f"↑{input_tokens:,} ↓{output_tokens:,} (cached: {cache_read:,})")
+    table.add_row("Tokens", " ".join(token_parts))
     console.print(table)
     _add_sep(console)
 

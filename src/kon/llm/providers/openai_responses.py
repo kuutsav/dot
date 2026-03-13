@@ -64,7 +64,9 @@ class OpenAIResponsesProvider(BaseProvider):
         max_tokens: int | None = None,
     ) -> LLMStream:
         client = self._get_client()
-        params = self._build_params(messages, system_prompt, tools, max_tokens)
+        params = self._build_params(
+            messages, system_prompt, tools, max_tokens, session_id=self.config.session_id
+        )
         response_stream = await client.responses.create(**params)
         llm_stream = LLMStream()
         llm_stream.set_iterator(self._process_stream(response_stream, llm_stream))
@@ -189,9 +191,11 @@ class OpenAIResponsesProvider(BaseProvider):
                         cached = 0
                         if response.usage.input_tokens_details:
                             cached = response.usage.input_tokens_details.cached_tokens or 0
+                        input_tokens = response.usage.input_tokens or 0
+                        non_cached_input = max(input_tokens - cached, 0)
 
                         llm_stream._usage = Usage(
-                            input_tokens=response.usage.input_tokens or 0,
+                            input_tokens=non_cached_input,
                             output_tokens=response.usage.output_tokens or 0,
                             cache_read_tokens=cached,
                         )

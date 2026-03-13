@@ -228,8 +228,10 @@ class OpenAICodexResponsesProvider(BaseProvider):
                                 cached = 0
                                 if isinstance(input_details, dict):
                                     cached = int(input_details.get("cached_tokens") or 0)
+                                input_tokens = int(usage.get("input_tokens") or 0)
+                                non_cached_input = max(input_tokens - cached, 0)
                                 llm_stream._usage = Usage(
-                                    input_tokens=int(usage.get("input_tokens") or 0),
+                                    input_tokens=non_cached_input,
                                     output_tokens=int(usage.get("output_tokens") or 0),
                                     cache_read_tokens=cached,
                                 )

@@ -126,15 +126,16 @@ class SessionUIMixin:
                 chat.add_info_message(entry.content)
 
     @staticmethod
-    def _calculate_session_tokens(session: Session) -> tuple[int, int, int, int]:
+    def _calculate_session_tokens(session: Session) -> tuple[int, int, int, int, int]:
         """
         Calculate cumulative token usage from session entries.
 
-        Returns (input_tokens, output_tokens, context_tokens, cached_tokens).
+        Returns (input_tokens, output_tokens, context_tokens, cache_read_tokens, cache_write_tokens).
         """
         input_tokens = 0
         output_tokens = 0
-        cached_tokens = 0
+        cache_read_tokens = 0
+        cache_write_tokens = 0
         context_tokens = 0
 
         for entry in session.entries:
@@ -143,10 +144,13 @@ class SessionUIMixin:
                 if usage:
                     input_tokens += usage.input_tokens
                     output_tokens += usage.output_tokens
-                    cached_tokens += usage.cache_read_tokens
-                    context_tokens = usage.input_tokens + usage.output_tokens
+                    cache_read_tokens += usage.cache_read_tokens
+                    cache_write_tokens += usage.cache_write_tokens
+                    context_tokens = (
+                        usage.input_tokens + usage.output_tokens + usage.cache_read_tokens
+                    )
 
-        return input_tokens, output_tokens, context_tokens, cached_tokens
+        return input_tokens, output_tokens, context_tokens, cache_read_tokens, cache_write_tokens
 
     async def _load_session(self, session_path: str | Path) -> None:
         chat = self.query_one("#chat-log", ChatLog)
@@ -165,8 +169,10 @@ class SessionUIMixin:
         self._current_block_type = None
 
         status.reset()
-        input_t, output_t, context_t, cached_t = self._calculate_session_tokens(session)
-        info_bar.set_tokens(input_t, output_t, context_t, cached_t)
+        input_t, output_t, context_t, cache_read_t, cache_write_t = self._calculate_session_tokens(
+            session
+        )
+        info_bar.set_tokens(input_t, output_t, context_t, cache_read_t, cache_write_t)
         info_bar.set_session_id(session.id[:8])
 
         model_info = session.model
@@ -189,6 +195,7 @@ class SessionUIMixin:
                         max_tokens=get_max_tokens(model_id),
                         thinking_level=self._thinking_level,
                         provider=provider,
+                        session_id=session.id,
                     )
                     try:
                         self._provider = self._create_provider(restored_model.api, provider_config)
@@ -197,10 +204,12 @@ class SessionUIMixin:
                 else:
                     self._provider.config.model = model_id
                     self._provider.config.base_url = restored_base_url
+                    self._provider.config.session_id = session.id
             elif self._provider:
                 self._provider.config.model = model_id
                 if restored_base_url:
                     self._provider.config.base_url = restored_base_url
+                self._provider.config.session_id = session.id
 
             info_bar.set_model(model_id, provider)
 

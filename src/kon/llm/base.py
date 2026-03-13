@@ -24,6 +24,7 @@ class ProviderConfig:
     temperature: float | None = None
     thinking_level: str = "medium"
     provider: str | None = None
+    session_id: str | None = None
 
 
 class LLMStream(AsyncIterator["StreamPart"]):

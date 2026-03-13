@@ -149,6 +149,8 @@ Keybindings:
                 else (self._provider.config.base_url if self._provider else None)
             )
             self._session.append_model_change(model_provider, self._model, model_base_url)
+            if self._provider:
+                self._provider.config.session_id = self._session.id
             info_bar = self.query_one("#info-bar", InfoBar)
             info_bar.set_session_id(self._session.id[:8])
             info_bar.set_tokens(0, 0, 0, 0)
@@ -196,6 +198,7 @@ Keybindings:
                 max_tokens=get_max_tokens(model.id),
                 thinking_level=self._thinking_level,
                 provider=model.provider,
+                session_id=self._session.id if self._session else None,
             )
             try:
                 self._provider = self._create_provider(model.api, provider_config)
@@ -233,6 +236,8 @@ Keybindings:
             else (self._provider.config.base_url if self._provider else None)
         )
         self._session.append_model_change(model_provider, self._model, model_base_url)
+        if self._provider:
+            self._provider.config.session_id = self._session.id
 
         chat = self.query_one("#chat-log", ChatLog)
         info_bar = self.query_one("#info-bar", InfoBar)
@@ -299,14 +304,18 @@ Keybindings:
 
         input_tokens = 0
         output_tokens = 0
+        cache_read_tokens = 0
+        cache_write_tokens = 0
         for entry in self._session.entries:
             if isinstance(entry, MessageEntry) and isinstance(entry.message, AssistantMessage):
                 usage = entry.message.usage
                 if usage:
                     input_tokens += usage.input_tokens
                     output_tokens += usage.output_tokens
+                    cache_read_tokens += usage.cache_read_tokens
+                    cache_write_tokens += usage.cache_write_tokens
 
-        total_tokens = input_tokens + output_tokens
+        total_tokens = input_tokens + output_tokens + cache_read_tokens + cache_write_tokens
 
         lines = [
             "Session Info",
@@ -325,6 +334,8 @@ Keybindings:
             "Tokens",
             f"Input: {input_tokens:,}",
             f"Output: {output_tokens:,}",
+            f"Cache read: {cache_read_tokens:,}",
+            f"Cache write: {cache_write_tokens:,}",
             f"Total: {total_tokens:,}",
         ]
 
