@@ -29,6 +29,9 @@ dependencies = [
     "textual>=8.0.0",
 ]
 
+[project.optional-dependencies]
+web = ["ddgs>=9.0.0", "trafilatura>=2.0.0"]
+
 [dependency-groups]
 dev = [
  "pyright>=1.1.408",
