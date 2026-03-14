@@ -39,9 +39,9 @@ class Kon(TextArea):
         self._on_paste_transform = on_paste
 
     async def _on_key(self, event: events.Key) -> None:
-        # Let y/n bubble to the app-level on_key handler during approval prompts
         future = getattr(self.app, "_approval_future", None)
         if future and not future.done() and event.key in ("y", "Y", "n", "N"):
+            self.app.on_key(event)
             return
         await super()._on_key(event)
 
