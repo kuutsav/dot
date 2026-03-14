@@ -224,7 +224,9 @@ def format_skills_for_prompt(skills: list[Skill]) -> str:
         "",
         "The following skills provide specialized instructions for specific tasks.",
         "Use the read tool to load a skill's file when the task matches its description.",
-        "If a skill is manually triggered via slash command, its description is already included in the user message, so you usually don't need to read the skill file unless you need additional detail.",
+        "If a skill is manually triggered via slash command, its description is "
+        "already included in the user message, so you usually don't need to read "
+        "the skill file unless you need additional detail.",
         "",
         "<available_skills>",
     ]

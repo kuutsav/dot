@@ -18,8 +18,8 @@ from textual.binding import Binding
 from kon import config, consume_config_warnings, update_available_binaries
 from kon.tools_manager import ensure_tools
 
-from ..core.types import StopReason
 from ..context.skills import load_skills
+from ..core.types import StopReason
 from ..events import (
     AgentEndEvent,
     AgentStartEvent,
