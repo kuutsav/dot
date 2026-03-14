@@ -129,14 +129,14 @@ class SessionUIMixin:
                 query = str((entry.details or {}).get("query") or "").strip()
                 if entry.custom_type == "handoff_backlink" and target_session_id:
                     chat.add_handoff_link_message(
-                        label=f"Origin session {target_session_id[:8]}",
+                        label="Origin session",
                         target_session_id=target_session_id,
                         query=query,
                         direction="back",
                     )
                 elif entry.custom_type == "handoff_forward_link" and target_session_id:
                     chat.add_handoff_link_message(
-                        label=f"Handoff session {target_session_id[:8]}",
+                        label="Handoff session",
                         target_session_id=target_session_id,
                         query=query,
                         direction="forward",
