@@ -1,4 +1,4 @@
-from typing import Literal
+from importlib.util import find_spec
 
 from ..core.types import ToolDefinition
 from .base import BaseTool
@@ -25,12 +25,21 @@ __all__ = [
 ]
 
 all_tools = [ReadTool(), EditTool(), WriteTool(), BashTool(), GrepTool(), FindTool()]
+
+if find_spec("ddgs"):
+    from .web_search import WebSearchTool
+
+    all_tools.append(WebSearchTool())
+if find_spec("trafilatura"):
+    from .web_fetch import WebFetchTool
+
+    all_tools.append(WebFetchTool())
+
 tools_by_name: dict[str, BaseTool] = {tool.name: tool for tool in all_tools}
-ToolName = Literal["read", "edit", "write", "bash", "grep", "find"]
-DEFAULT_TOOLS: list[ToolName] = ["read", "edit", "write", "bash", "grep", "find"]
+DEFAULT_TOOLS: list[str] = list(tools_by_name.keys())
 
 
-def get_tools(names: list[ToolName]) -> list[BaseTool]:
+def get_tools(names: list[str]) -> list[BaseTool]:
     return [tool for tool in all_tools if tool.name in names]
 
 
