@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Literal
+from typing import Any, Literal, cast
 
 import pytest
 
@@ -11,8 +11,44 @@ from kon.session import CustomMessageEntry, Session
 from kon.ui.commands import CommandsMixin
 
 
+class _FakeInfoBar:
+    def __init__(self) -> None:
+        self.tokens_calls: list[tuple[int, int, int, int]] = []
+        self.file_changes_calls: list[dict[str, tuple[int, int]]] = []
+        self.session_ids: list[str] = []
+        self.thinking_levels: list[str] = []
+
+    def set_tokens(self, input_t: int, output_t: int, context_t: int, cache_t: int) -> None:
+        self.tokens_calls.append((input_t, output_t, context_t, cache_t))
+
+    def set_file_changes(self, file_changes: dict[str, tuple[int, int]]) -> None:
+        self.file_changes_calls.append(file_changes)
+
+    def set_session_id(self, session_id: str) -> None:
+        self.session_ids.append(session_id)
+
+    def set_thinking_level(self, level: str) -> None:
+        self.thinking_levels.append(level)
+
+
+class _FakeStatusLine:
+    def __init__(self) -> None:
+        self.reset_calls = 0
+
+    def reset(self) -> None:
+        self.reset_calls += 1
+
+
 class _TestCommandsApp(CommandsMixin):
-    def __init__(self, session: Session, provider: MockProvider, chat, input_box) -> None:
+    def __init__(
+        self,
+        session: Session,
+        provider: MockProvider,
+        chat,
+        input_box,
+        info_bar: _FakeInfoBar | None = None,
+        status_line: _FakeStatusLine | None = None,
+    ) -> None:
         self._cwd = "/test/project"
         self._thinking_level = "medium"
         self._model = "mock-model"
@@ -28,18 +64,16 @@ class _TestCommandsApp(CommandsMixin):
         self._is_running = False
         self._chat = chat
         self._input_box = input_box
+        self._info_bar = info_bar or _FakeInfoBar()
+        self._status_line = status_line or _FakeStatusLine()
 
     def query_one(self, selector: str, cls):
         if selector == "#chat-log":
             return self._chat
         if selector == "#info-bar":
-            return SimpleNamespace(
-                set_tokens=lambda *a, **k: None,
-                set_session_id=lambda *a, **k: None,
-                set_thinking_level=lambda *a, **k: None,
-            )
+            return self._info_bar
         if selector == "#status-line":
-            return SimpleNamespace(reset=lambda: None)
+            return self._status_line
         if selector == "#input-box":
             return self._input_box
         raise AssertionError(selector)
@@ -172,3 +206,40 @@ async def test_do_handoff_creates_link_entries_and_prefills_prompt(monkeypatch):
         e for e in original_session.entries if isinstance(e, CustomMessageEntry)
     ]
     assert any(e.custom_type == app.HANDOFF_FORWARD_LINK_TYPE for e in original_custom_entries)
+
+
+@pytest.mark.asyncio
+async def test_new_conversation_resets_file_change_stats():
+    session = Session.in_memory("/test/project", provider="mock", model_id="mock-model")
+    provider = MockProvider()
+    chat = _FakeChat()
+    input_box = _FakeInput()
+    info_bar = _FakeInfoBar()
+    status_line = _FakeStatusLine()
+    app = _TestCommandsApp(
+        session=session,
+        provider=provider,
+        chat=chat,
+        input_box=input_box,
+        info_bar=info_bar,
+        status_line=status_line,
+    )
+
+    await app._do_new_conversation(cast(Any, chat), info_bar, status_line)
+
+    assert info_bar.file_changes_calls[-1] == {}
+
+
+def test_clear_conversation_resets_file_change_stats():
+    session = Session.in_memory("/test/project", provider="mock", model_id="mock-model")
+    provider = MockProvider()
+    chat = _FakeChat()
+    input_box = _FakeInput()
+    info_bar = _FakeInfoBar()
+    app = _TestCommandsApp(
+        session=session, provider=provider, chat=chat, input_box=input_box, info_bar=info_bar
+    )
+
+    app._clear_conversation()
+
+    assert info_bar.file_changes_calls[-1] == {}

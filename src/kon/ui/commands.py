@@ -166,6 +166,7 @@ Keybindings:
             info_bar = self.query_one("#info-bar", InfoBar)
             info_bar.set_session_id(self._session.id[:8])
             info_bar.set_tokens(0, 0, 0, 0)
+            info_bar.set_file_changes({})
         chat = self.query_one("#chat-log", ChatLog)
         chat.add_info_message("Conversation cleared")
 
@@ -251,6 +252,7 @@ Keybindings:
         status.reset()
 
         info_bar.set_tokens(0, 0, 0, 0)
+        info_bar.set_file_changes({})
         if self._session:
             info_bar.set_session_id(self._session.id[:8])
         info_bar.set_thinking_level(self._thinking_level)
