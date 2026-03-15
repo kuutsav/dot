@@ -12,6 +12,7 @@ from ..shared import shorten_path
 from .base import BaseTool, ToolResult
 
 CONTEXT_LINES = 4
+MAX_DIFF_LINE_DISPLAY_CHARS = 105
 
 
 class EditParams(BaseModel):
@@ -131,6 +132,14 @@ def generate_diff(
     return "\n".join(output), added, removed
 
 
+def truncate_diff_line(line: str, max_chars: int = MAX_DIFF_LINE_DISPLAY_CHARS) -> str:
+    if len(line) <= max_chars:
+        return line
+    if max_chars <= 3:
+        return "." * max_chars
+    return f"{line[: max_chars - 3]}..."
+
+
 def format_diff_display(diff: str) -> str:
     colors = config.ui.colors
     lines = diff.split("\n")
@@ -139,7 +148,9 @@ def format_diff_display(diff: str) -> str:
     for line in lines:
         if not line:
             continue
-        escaped = line.replace("[", "\\[")
+
+        truncated = truncate_diff_line(line)
+        escaped = truncated.replace("[", "\\[")
 
         if line.startswith("-"):
             formatted.append(f"[{colors.diff_removed}]{escaped}[/{colors.diff_removed}]")
