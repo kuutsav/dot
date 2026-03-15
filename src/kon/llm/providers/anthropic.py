@@ -45,8 +45,8 @@ THINKING_BUDGET_MAP: dict[str, int] = {
     "none": 0,
     "minimal": 1024,
     "low": 2048,
-    "medium": 4096,
-    "high": 8192,
+    "medium": 8192,
+    "high": 16384,
     "xhigh": 16384,
 }
 
