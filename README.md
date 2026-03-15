@@ -4,20 +4,11 @@
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/release/python-3120/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Kon is a minimal coding agent with a tiny harness: about **215 tokens** for the system prompt and around **600 tokens** for tool definitions – so **under 1k tokens** before conversation context.
+Kon is a minimal coding agent with a tiny harness: about **210 tokens** for the system prompt and around **1,070 tokens** for tool definitions – so **under 1.3k tokens** before conversation context. This does not include AGENTS.md, skills, or git context (if enabled), which vary per user and project.
 
-At the time of writing this README (**25 Feb 2026**), this repo has **112 files** and is easy to understand in a weekend. Here's a rough file-count comparison against a couple of popular OSS coding agents:
+The repo has **~126 files** and is easy to understand in a weekend. If you want a truly minimal coding agent with batteries included – something you can understand, fork, and extend quickly – Kon might be interesting.
 
-Others are of course more mature, support more models, include broader test coverage, and cover more surfaces. But if you want a truly minimal coding agent with batteries included – something you can understand, fork, and extend quickly – Kon might be interesting.
-
-```bash
-$ fd . | cut -d/ -f1 | sort | uniq -c | sort -rn
-4107 opencode
- 740 pi-mono
- 108 kon
-```
-
-[Kon](https://bleach.fandom.com/wiki/Kon) is inspired from Bleach, a artificial soul
+[Kon](https://bleach.fandom.com/wiki/Kon) is inspired from Bleach, an artificial soul
 
 ## Setup
 
@@ -268,13 +259,13 @@ config_version = 2
 
 [llm]
 default_provider = "openai-codex" # "zhipu", "github-copilot", "openai-codex", "azure-ai-foundry"
-default_model = "gpt-5.4"
+default_model = "gpt-5.3-codex"
 default_base_url = ""
 default_thinking_level = "high"
 tool_call_idle_timeout_seconds = 120
 
 [llm.system_prompt]
-git_context = false
+git_context = false # if true, injects git branch, recent commits, and status into the system prompt
 content = """You are an expert coding assistant called `Kon`.
 ...
 """
