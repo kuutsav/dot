@@ -51,6 +51,7 @@ class ColorsConfig(BaseModel):
     spinner: str
     accent: str
     info: str
+    markdown_heading: str
     markdown_code: str
     selected: str
     error: str

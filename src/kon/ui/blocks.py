@@ -21,9 +21,43 @@ class LaunchWarning:
     severity: Literal["warning", "error"] = "warning"
 
 
-class ThinkingBlock(Static):
-    """Uses plain text during streaming for performance, renders markdown on finalize."""
+class _StreamingMarkdownMixin:
+    """Line-buffered incremental markdown rendering for streaming blocks.
 
+    Buffers incoming chunks until a newline arrives, then renders completed
+    lines as markdown immediately. This avoids the visual "pop" of a full
+    reformat on finalize and feels smoother than per-token plain-text updates.
+    """
+
+    _pending: str
+    _rendered_parts: list[Text]
+
+    def _init_streaming(self) -> None:
+        self._pending = ""
+        self._rendered_parts = []
+
+    def _append_streaming(self, text: str) -> Text:
+        self._pending += text
+
+        last_nl = self._pending.rfind("\n")
+        if last_nl != -1:
+            complete = self._pending[: last_nl + 1]
+            self._pending = self._pending[last_nl + 1 :]
+            self._rendered_parts.append(format_markdown(complete))
+
+        display = Text()
+        for i, part in enumerate(self._rendered_parts):
+            if i > 0:
+                display.append("\n")
+            display.append_text(part)
+        if self._pending:
+            if self._rendered_parts:
+                display.append("\n")
+            display.append(self._pending)
+        return display
+
+
+class ThinkingBlock(_StreamingMarkdownMixin, Static):
     ALLOW_SELECT = True
     can_focus = False
 
@@ -32,6 +66,7 @@ class ThinkingBlock(Static):
         self._content = content
         self._finalized = finalized
         self._label: Label | None = None
+        self._init_streaming()
         self.add_class("thinking-block")
 
     def compose(self) -> ComposeResult:
@@ -48,7 +83,7 @@ class ThinkingBlock(Static):
 
     async def append(self, text: str) -> None:
         self._content += text
-        self.label.update(self._content)
+        self.label.update(self._append_streaming(text))
 
     def finalize(self) -> None:
         if self._content and not self._finalized:
@@ -65,7 +100,7 @@ class ThinkingBlock(Static):
         self.label.update(format_markdown(self._content))
 
 
-class ContentBlock(Static):
+class ContentBlock(_StreamingMarkdownMixin, Static):
     # TODO: Consider switching to Textual's Markdown widget + MarkdownStream.write() for
     # incremental rendering during streaming. This would eliminate the visual reflow when
     # finalize() converts plain text to markdown. The tradeoff: our custom Rich-based
@@ -82,10 +117,10 @@ class ContentBlock(Static):
         self._content = content
         self._finalized = finalized
         self._label: Label | None = None
+        self._init_streaming()
         self.add_class("content-block")
 
     def compose(self) -> ComposeResult:
-        # If created with content (loading history), render markdown immediately
         if self._finalized and self._content:
             yield Label(format_markdown(self._content), id="content-text", markup=False)
         else:
@@ -99,12 +134,11 @@ class ContentBlock(Static):
 
     async def append(self, text: str) -> None:
         self._content += text
-        self.label.update(self._content)
+        self.label.update(self._append_streaming(text))
 
     def finalize(self) -> None:
         if self._content and not self._finalized:
             self._finalized = True
-            # Use call_after_refresh to batch the update
             self.call_after_refresh(self._do_finalize)
 
     def _do_finalize(self) -> None:
