@@ -18,6 +18,7 @@ from .blocks import (
     ToolBlock,
     UpdateAvailableBlock,
     UserBlock,
+    stylize_badge_markers,
 )
 
 MAX_CHILDREN = 300
@@ -297,13 +298,11 @@ class ChatLog(VerticalScroll):
             self._last_status_label.remove()
             self._last_status_label = None
 
-        label_color = config.ui.colors.badge.label
         dim_color = config.ui.colors.dim
         token_str = f"{tokens_before:,}"
 
-        text = Text()
-        text.append("[compaction]", style=f"{label_color} bold")
-        text.append(f" Compacted from {token_str} tokens", style=dim_color)
+        text = Text(f"[compaction] Compacted from {token_str} tokens", style=dim_color)
+        stylize_badge_markers(text, ("[compaction]",))
 
         label = Label(text)
         label.add_class("compaction-message")

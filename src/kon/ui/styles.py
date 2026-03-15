@@ -124,8 +124,6 @@ Screen {{
     background: {colors.badge.bg};
     padding: 0 1;
     margin: 1 0 0 0;
-    border-top: solid grey;
-    border-bottom: solid grey;
     width: 100%;
 }}
 

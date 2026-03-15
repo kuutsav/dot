@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -19,6 +20,19 @@ _UPDATE_COMMAND = "uv tool upgrade kon-coding-agent"
 class LaunchWarning:
     message: str
     severity: Literal["warning", "error"] = "warning"
+
+
+def stylize_badge_markers(text: Text, markers: Iterable[str]) -> None:
+    badge_style = f"{config.ui.colors.badge.label} bold"
+    plain = text.plain
+    for marker in markers:
+        search_start = 0
+        while True:
+            start = plain.find(marker, search_start)
+            if start == -1:
+                break
+            text.stylize(badge_style, start, start + len(marker))
+            search_start = start + len(marker)
 
 
 class _StreamingMarkdownMixin:
@@ -253,13 +267,7 @@ class UserBlock(Static):
         text = Text()
         if self._highlighted_skill:
             text.append(self._content)
-            markers = [f"[{self._highlighted_skill}]", "[query]"]
-            for marker in markers:
-                start = self._content.find(marker)
-                if start != -1:
-                    text.stylize(
-                        f"{config.ui.colors.badge.label} bold", start, start + len(marker)
-                    )
+            stylize_badge_markers(text, [f"[{self._highlighted_skill}]", "[query]"])
         else:
             text.append("> ", style="bold")
             text.append(self._content)
@@ -290,10 +298,7 @@ class HandoffLinkBlock(Static):
         link_text = f"{self._target_session_id[:8]} (click to open)"
         handoff_line = f"{self._label} → {link_text}"
         text = Text(f"[handoff]\n{handoff_line}\n\n[query]\n{self._query}")
-        for marker in ("[handoff]", "[query]"):
-            start = text.plain.find(marker)
-            if start != -1:
-                text.stylize(f"{config.ui.colors.badge.label} bold", start, start + len(marker))
+        stylize_badge_markers(text, ("[handoff]", "[query]"))
 
         link_start = text.plain.find(link_text)
         if link_start != -1:
