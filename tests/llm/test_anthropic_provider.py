@@ -1,10 +1,29 @@
 from typing import Any, cast
 
 import pytest
-from anthropic.types import ThinkingConfigEnabledParam
+from anthropic.types import (
+    ContentBlockDeltaEvent,
+    ContentBlockStartEvent,
+    InputJSONDelta,
+    MessageDeltaEvent,
+    MessageDeltaUsage,
+    MessageStopEvent,
+    ThinkingConfigEnabledParam,
+    ToolUseBlock,
+)
 
-from kon.core.types import AssistantMessage, TextContent, ThinkingContent, ToolCall, UserMessage
-from kon.llm.base import ProviderConfig
+from kon.core.types import (
+    AssistantMessage,
+    StopReason,
+    StreamDone,
+    TextContent,
+    ThinkingContent,
+    ToolCall,
+    ToolCallDelta,
+    ToolCallStart,
+    UserMessage,
+)
+from kon.llm.base import LLMStream, ProviderConfig
 from kon.llm.providers.anthropic import AnthropicProvider, supports_adaptive_thinking
 
 
@@ -68,6 +87,66 @@ def test_supports_adaptive_thinking_detection():
     assert supports_adaptive_thinking("claude-sonnet-4.6")
     assert supports_adaptive_thinking("claude-sonnet-4-6")
     assert not supports_adaptive_thinking("claude-3-7-sonnet")
+
+
+@pytest.mark.asyncio
+async def test_process_stream_uses_tool_use_input_as_initial_arguments():
+    provider = AnthropicProvider.__new__(AnthropicProvider)
+    llm_stream = LLMStream()
+
+    async def response_iter():
+        yield ContentBlockStartEvent(
+            type="content_block_start",
+            index=0,
+            content_block=ToolUseBlock(
+                type="tool_use",
+                id="tool_1",
+                name="write",
+                input={"path": "/tmp/test.txt", "content": "hello"},
+            ),
+        )
+        yield MessageDeltaEvent(
+            type="message_delta",
+            delta=cast(Any, {"stop_reason": "tool_use", "stop_sequence": None}),
+            usage=MessageDeltaUsage(output_tokens=1),
+        )
+        yield MessageStopEvent(type="message_stop")
+
+    parts = [part async for part in provider._process_stream(response_iter(), llm_stream)]
+
+    assert isinstance(parts[0], ToolCallStart)
+    assert parts[0].arguments == {"path": "/tmp/test.txt", "content": "hello"}
+    assert isinstance(parts[-1], StreamDone)
+    assert parts[-1].stop_reason == StopReason.TOOL_USE
+
+
+@pytest.mark.asyncio
+async def test_process_stream_emits_tool_delta_for_input_json_delta():
+    provider = AnthropicProvider.__new__(AnthropicProvider)
+    llm_stream = LLMStream()
+
+    async def response_iter():
+        yield ContentBlockStartEvent(
+            type="content_block_start",
+            index=0,
+            content_block=ToolUseBlock(type="tool_use", id="tool_1", name="write", input={}),
+        )
+        yield ContentBlockDeltaEvent(
+            type="content_block_delta",
+            index=0,
+            delta=InputJSONDelta(type="input_json_delta", partial_json='{"path":"/tmp/test.txt"}'),
+        )
+        yield MessageDeltaEvent(
+            type="message_delta",
+            delta=cast(Any, {"stop_reason": "tool_use", "stop_sequence": None}),
+            usage=MessageDeltaUsage(output_tokens=1),
+        )
+        yield MessageStopEvent(type="message_stop")
+
+    parts = [part async for part in provider._process_stream(response_iter(), llm_stream)]
+
+    tool_delta = next(part for part in parts if isinstance(part, ToolCallDelta))
+    assert tool_delta.arguments_delta == '{"path":"/tmp/test.txt"}'
 
 
 class _EmptyAsyncIterator:
