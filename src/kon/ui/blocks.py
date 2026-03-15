@@ -24,34 +24,33 @@ class LaunchWarning:
 class _StreamingMarkdownMixin:
     """Line-buffered incremental markdown rendering for streaming blocks.
 
-    Buffers incoming chunks until a newline arrives, then renders completed
-    lines as markdown immediately. This avoids the visual "pop" of a full
-    reformat on finalize and feels smoother than per-token plain-text updates.
+    Buffers incoming chunks until a newline arrives, then re-renders all
+    completed lines as a single markdown document. Rendering the full
+    accumulated text each time preserves block-level structure (paragraph
+    spacing, headings, etc.) that would be lost if chunks were rendered
+    independently and stitched together.
     """
 
     _pending: str
-    _rendered_parts: list[Text]
+    _completed: str
 
     def _init_streaming(self) -> None:
         self._pending = ""
-        self._rendered_parts = []
+        self._completed = ""
 
     def _append_streaming(self, text: str) -> Text:
         self._pending += text
 
         last_nl = self._pending.rfind("\n")
         if last_nl != -1:
-            complete = self._pending[: last_nl + 1]
+            self._completed += self._pending[: last_nl + 1]
             self._pending = self._pending[last_nl + 1 :]
-            self._rendered_parts.append(format_markdown(complete))
 
         display = Text()
-        for i, part in enumerate(self._rendered_parts):
-            if i > 0:
-                display.append("\n")
-            display.append_text(part)
+        if self._completed:
+            display.append_text(format_markdown(self._completed))
         if self._pending:
-            if self._rendered_parts:
+            if self._completed:
                 display.append("\n")
             display.append(self._pending)
         return display
