@@ -80,7 +80,8 @@ class ReadTool(BaseTool):
         file_path = Path(params.path)
 
         if not file_path.exists():
-            return ToolResult(success=False, display="[red]Path not found[/red]")
+            msg = "Path not found"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         if not file_path.is_file():
             if file_path.is_dir():
@@ -98,7 +99,8 @@ class ReadTool(BaseTool):
                     result=f"{output}{warning}",
                     display=ls_result.display,
                 )
-            return ToolResult(success=False, display="[red]Path is not a file[/red]")
+            msg = "Path is not a file"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         if is_image_file(str(file_path)):
             try:
@@ -119,12 +121,14 @@ class ReadTool(BaseTool):
                     display=display_note,
                 )
             except Exception as e:
-                return ToolResult(success=False, display=f"[red]Failed to read image: {e}[/red]")
+                msg = f"Failed to read image: {e}"
+                return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         try:
             content = await self.read_file(file_path, params.offset, params.limit)
         except OSError as e:
-            return ToolResult(success=False, display=f"[red]Failed to read: {e}[/red]")
+            msg = f"Failed to read: {e}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         lines_read = len(content.splitlines()) if content else 0
         return ToolResult(

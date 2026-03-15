@@ -45,16 +45,16 @@ class FindTool(BaseTool):
     ) -> ToolResult:
         fd_path = await ensure_tool("fd", silent=True)
         if not fd_path:
-            return ToolResult(
-                success=False, display="[red]fd is not available and could not be downloaded[/red]"
-            )
+            msg = "fd is not available and could not be downloaded"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         search_path = params.path or os.getcwd()
         if not os.path.isabs(search_path):
             search_path = os.path.join(os.getcwd(), search_path)
 
         if not os.path.exists(search_path):
-            return ToolResult(success=False, display=f"[red]Path not found: {search_path}[/red]")
+            msg = f"Path not found: {search_path}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         args = [
             fd_path,
@@ -91,7 +91,8 @@ class FindTool(BaseTool):
         error_output = stderr.decode("utf-8", errors="replace").strip()
 
         if exit_code not in (0, 1) and not output:
-            return ToolResult(success=False, display=f"[red]fd failed: {error_output}[/red]")
+            msg = f"fd failed: {error_output}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         if not output:
             return ToolResult(

@@ -200,7 +200,8 @@ class BashTool(BaseTool):
         self, params: BashParams, cancel_event: asyncio.Event | None = None
     ) -> ToolResult:
         if not params.command.strip():
-            return ToolResult(success=False, display="[red]Command cannot be empty[/red]")
+            msg = "Command cannot be empty"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         command = _transform_command(params.command)
 
@@ -298,7 +299,8 @@ class BashTool(BaseTool):
                 )
 
         except Exception as e:
-            return ToolResult(success=False, display=f"[red]Error running command: {e}[/red]")
+            msg = f"Error running command: {e}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
         finally:
             if proc is not None:
                 await _kill_process_tree(proc)

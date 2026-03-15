@@ -169,13 +169,15 @@ class EditTool(BaseTool):
         file_path = Path(params.path)
 
         if not file_path.exists():
-            return ToolResult(success=False, display=f"[red]File not found: {file_path}[/red]")
+            msg = f"File not found: {file_path}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         async with aiofiles.open(file_path, encoding="utf-8") as f:
             content = await f.read()
 
         if params.old_string not in content:
-            return ToolResult(success=False, display="[red]old_string not found in file[/red]")
+            msg = "old_string not found in file"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         if params.replace_all:
             new_content = content.replace(params.old_string, params.new_string)

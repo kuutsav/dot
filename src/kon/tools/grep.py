@@ -50,17 +50,16 @@ class GrepTool(BaseTool):
     ) -> ToolResult:
         rg_path = await ensure_tool("rg", silent=True)
         if not rg_path:
-            return ToolResult(
-                success=False,
-                display="[red]ripgrep (rg) is not available and could not be downloaded[/red]",
-            )
+            msg = "ripgrep (rg) is not available and could not be downloaded"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         search_path = params.path or os.getcwd()
         if not os.path.isabs(search_path):
             search_path = os.path.join(os.getcwd(), search_path)
 
         if not os.path.exists(search_path):
-            return ToolResult(success=False, display=f"[red]Path not found: {search_path}[/red]")
+            msg = f"Path not found: {search_path}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         args = [
             rg_path,
@@ -106,7 +105,8 @@ class GrepTool(BaseTool):
             )
 
         if exit_code not in (0, 2):
-            return ToolResult(success=False, display=f"[red]ripgrep failed: {error_output}[/red]")
+            msg = f"ripgrep failed: {error_output}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         lines = output.strip().split("\n")
         matches = []

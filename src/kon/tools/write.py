@@ -48,7 +48,8 @@ class WriteTool(BaseTool):
             async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
                 await f.write(params.content)
         except OSError as e:
-            return ToolResult(success=False, display=f"[red]Failed to write: {e}[/red]")
+            msg = f"Failed to write: {e}"
+            return ToolResult(success=False, result=msg, display=f"[red]{msg}[/red]")
 
         n_lines = params.content.count("\n") + 1
         short_path = shorten_path(str(file_path))
