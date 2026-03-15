@@ -49,7 +49,8 @@ Screen {{
 .user-block Label,
 .update-available-block Label,
 .launch-warnings-block Label,
-.tool-block Label {{
+.tool-block Label,
+.handoff-link-block Label {{
     width: 100%;
 }}
 
@@ -122,7 +123,7 @@ Screen {{
 /* Handoff link */
 .handoff-link-block {{
     background: {colors.badge.bg};
-    padding: 0 1;
+    padding: 1 1;
     margin: 1 0 0 0;
     width: 100%;
 }}
