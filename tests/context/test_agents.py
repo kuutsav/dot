@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from kon.context.agents import (
+from kon.context.agent_mds import (
     ContextFile,
     _find_git_root,
     _get_stop_directory,
     _load_context_from_dir,
     escape_xml,
-    format_agents_files_for_prompt,
-    load_agents_files,
+    formatted_agent_mds,
+    load_agent_mds,
 )
 
 
@@ -135,20 +135,20 @@ class TestLoadContextFileFromDir:
 
 class TestLoadAgentsFiles:
     def test_loads_from_cwd(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: tmp_path / "config")
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: tmp_path / "config")
 
         project = tmp_path / "project"
         project.mkdir()
         (project / ".git").mkdir()
         (project / "AGENTS.md").write_text("# Project rules")
 
-        result = load_agents_files(str(project))
+        result = load_agent_mds(str(project))
 
         assert len(result) == 1
         assert "Project rules" in result[0].content
 
     def test_loads_from_ancestors(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: tmp_path / "config")
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: tmp_path / "config")
 
         root = tmp_path / "repo"
         (root / ".git").mkdir(parents=True)
@@ -158,7 +158,7 @@ class TestLoadAgentsFiles:
         subdir.mkdir(parents=True)
         (subdir / "AGENTS.md").write_text("# Deep rules")
 
-        result = load_agents_files(str(subdir))
+        result = load_agent_mds(str(subdir))
 
         assert len(result) == 2
         assert "Root rules" in result[0].content
@@ -168,14 +168,14 @@ class TestLoadAgentsFiles:
         config_dir = tmp_path / "config"
         config_dir.mkdir()
         (config_dir / "AGENTS.md").write_text("# Global rules")
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: config_dir)
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: config_dir)
 
         project = tmp_path / "project"
         project.mkdir()
         (project / ".git").mkdir()
         (project / "AGENTS.md").write_text("# Project rules")
 
-        result = load_agents_files(str(project))
+        result = load_agent_mds(str(project))
 
         assert len(result) == 2
         assert "Global rules" in result[0].content
@@ -184,20 +184,20 @@ class TestLoadAgentsFiles:
     def test_no_duplicates(self, tmp_path, monkeypatch):
         config_dir = tmp_path / "config"
         config_dir.mkdir()
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: config_dir)
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: config_dir)
 
         project = tmp_path / "project"
         project.mkdir()
         (project / ".git").mkdir()
         (project / "AGENTS.md").write_text("# Single file")
 
-        result = load_agents_files(str(project))
+        result = load_agent_mds(str(project))
 
         paths = [r.path for r in result]
         assert len(paths) == len(set(paths))
 
     def test_ordering_closest_last(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: tmp_path / "config")
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: tmp_path / "config")
 
         root = tmp_path / "repo"
         (root / ".git").mkdir(parents=True)
@@ -211,7 +211,7 @@ class TestLoadAgentsFiles:
         leaf.mkdir()
         (leaf / "AGENTS.md").write_text("# 3-leaf")
 
-        result = load_agents_files(str(leaf))
+        result = load_agent_mds(str(leaf))
 
         assert len(result) == 3
         assert "1-root" in result[0].content
@@ -219,13 +219,13 @@ class TestLoadAgentsFiles:
         assert "3-leaf" in result[2].content
 
     def test_empty_when_no_files(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kon.context.agents.get_config_dir", lambda: tmp_path / "config")
+        monkeypatch.setattr("kon.context.agent_mds.get_config_dir", lambda: tmp_path / "config")
 
         project = tmp_path / "empty"
         project.mkdir()
         (project / ".git").mkdir()
 
-        result = load_agents_files(str(project))
+        result = load_agent_mds(str(project))
 
         assert result == []
 
@@ -258,13 +258,13 @@ class TestEscapeXml:
 
 class TestFormatAgentsFilesForPrompt:
     def test_empty_list(self):
-        result = format_agents_files_for_prompt([])
+        result = formatted_agent_mds([])
         assert result == ""
 
     def test_single_file(self):
         files = [ContextFile(path="/path/to/AGENTS.md", content="Use pytest for tests.")]
 
-        result = format_agents_files_for_prompt(files)
+        result = formatted_agent_mds(files)
 
         assert "# Project Context" in result
         assert "Project guidelines for coding agents." in result
@@ -279,7 +279,7 @@ class TestFormatAgentsFilesForPrompt:
             ContextFile(path="/project/AGENTS.md", content="Project rules."),
         ]
 
-        result = format_agents_files_for_prompt(files)
+        result = formatted_agent_mds(files)
 
         assert '<file path="/global/AGENTS.md">' in result
         assert "Global rules." in result

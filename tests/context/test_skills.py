@@ -3,7 +3,7 @@ from kon.context.skills import (
     _load_skill_from_dir,
     _parse_frontmatter,
     _validate_skill,
-    format_skills_for_prompt,
+    formatted_skills,
     load_skills,
 )
 
@@ -369,14 +369,14 @@ description: Uses directory fallback
 
 class TestFormatSkillsForPrompt:
     def test_empty_skills(self):
-        result = format_skills_for_prompt([])
+        result = formatted_skills([])
 
         assert result == ""
 
     def test_single_skill(self):
         skills = [Skill(name="test-skill", description="A test skill", path="/path/to/SKILL.md")]
 
-        result = format_skills_for_prompt(skills)
+        result = formatted_skills(skills)
 
         assert "# Skills" in result
         assert "<available_skills>" in result
@@ -392,7 +392,7 @@ class TestFormatSkillsForPrompt:
             )
         ]
 
-        result = format_skills_for_prompt(skills)
+        result = formatted_skills(skills)
 
         assert "&lt;angle&gt;" in result
         assert "&amp;" in result
@@ -404,7 +404,7 @@ class TestFormatSkillsForPrompt:
             Skill(name="skill-b", description="Second", path="/b/SKILL.md"),
         ]
 
-        result = format_skills_for_prompt(skills)
+        result = formatted_skills(skills)
 
         assert "<name>skill-a</name>" in result
         assert "<name>skill-b</name>" in result

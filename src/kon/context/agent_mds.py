@@ -56,7 +56,7 @@ def _load_context_from_dir(directory: Path) -> ContextFile | None:
     return None
 
 
-def load_agents_files(cwd: str | None = None) -> list[ContextFile]:
+def load_agent_mds(cwd: str | None = None) -> list[ContextFile]:
     """
     Load all AGENTS.md files from config dir and ancestor directories.
 
@@ -105,7 +105,7 @@ def load_agents_files(cwd: str | None = None) -> list[ContextFile]:
     return context_files
 
 
-def format_agents_files_for_prompt(agents_files: list[ContextFile]) -> str:
+def formatted_agent_mds(agents_files: list[ContextFile]) -> str:
     if not agents_files:
         return ""
 

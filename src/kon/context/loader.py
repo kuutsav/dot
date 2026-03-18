@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .agents import ContextFile, load_agents_files
+from .agent_mds import ContextFile, load_agent_mds
 from .skills import Skill, load_skills
 
 
@@ -22,7 +22,7 @@ class Context:
 
     @classmethod
     def load(cls, cwd: str) -> Context:
-        agents_files = load_agents_files(cwd)
+        agents_files = load_agent_mds(cwd)
         skills_result = load_skills(cwd)
 
         return cls(
@@ -33,7 +33,7 @@ class Context:
         )
 
     def reload(self) -> None:
-        agents_files = load_agents_files(self.cwd)
+        agents_files = load_agent_mds(self.cwd)
         skills_result = load_skills(self.cwd)
 
         self.agents_files = agents_files

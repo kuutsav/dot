@@ -215,7 +215,7 @@ def load_skills(cwd: str | None = None) -> LoadSkillsResult:
     return LoadSkillsResult(skills=list(skill_map.values()), warnings=all_warnings)
 
 
-def format_skills_for_prompt(skills: list[Skill]) -> str:
+def formatted_skills(skills: list[Skill]) -> str:
     if not skills:
         return ""
 

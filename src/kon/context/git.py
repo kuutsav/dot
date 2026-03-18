@@ -14,7 +14,7 @@ def _run_git_command(cwd: str, args: list[str], timeout: int = 5) -> str:
     return result.stdout.strip()
 
 
-def format_git_context_for_prompt(cwd: str) -> str:
+def formatted_git_context(cwd: str) -> str:
     is_git_repo = _run_git_command(cwd, ["rev-parse", "--git-dir"]) != ""
     if not is_git_repo:
         return ""
@@ -56,9 +56,8 @@ def format_git_context_for_prompt(cwd: str) -> str:
 
     return (
         "# Git Context\n\n"
-        "This is the git status at the start of the conversation. "
-        "Note that this status is a snapshot in time, and will not update "
-        "during the conversation.\n\n"
+        "This is the git status at the start of the conversation. Note that this "
+        "status is a snapshot in time, and will not update during the conversation.\n\n"
         "<git-status>\n"
         f"{content}\n"
         "</git-status>"

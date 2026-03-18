@@ -1,15 +1,15 @@
-from .agents import ContextFile, format_agents_files_for_prompt, load_agents_files
-from .git import format_git_context_for_prompt
+from .agent_mds import ContextFile, formatted_agent_mds, load_agent_mds
+from .git import formatted_git_context
 from .loader import Context
-from .skills import Skill, format_skills_for_prompt, load_skills
+from .skills import Skill, formatted_skills, load_skills
 
 __all__ = [
     "Context",
     "ContextFile",
     "Skill",
-    "format_agents_files_for_prompt",
-    "format_git_context_for_prompt",
-    "format_skills_for_prompt",
-    "load_agents_files",
+    "formatted_agent_mds",
+    "formatted_git_context",
+    "formatted_skills",
+    "load_agent_mds",
     "load_skills",
 ]

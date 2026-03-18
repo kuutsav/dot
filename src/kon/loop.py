@@ -16,12 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import config as kon_config
-from .context import (
-    Context,
-    format_agents_files_for_prompt,
-    format_git_context_for_prompt,
-    format_skills_for_prompt,
-)
+from .context import Context, formatted_agent_mds, formatted_git_context, formatted_skills
 from .core.compaction import generate_summary, is_overflow
 from .core.types import (
     AssistantMessage,
@@ -60,13 +55,13 @@ def build_system_prompt(cwd: str, context: Context | None = None) -> str:
     prompt = kon_config.llm.system_prompt.content
 
     if context.agents_files:
-        prompt += "\n\n" + format_agents_files_for_prompt(context.agents_files)
+        prompt += "\n\n" + formatted_agent_mds(context.agents_files)
 
     if context.skills:
-        prompt += "\n\n" + format_skills_for_prompt(context.skills)
+        prompt += "\n\n" + formatted_skills(context.skills)
 
     if kon_config.llm.system_prompt.git_context:
-        git_context = format_git_context_for_prompt(cwd)
+        git_context = formatted_git_context(cwd)
         if git_context:
             prompt += "\n\n" + git_context
 
