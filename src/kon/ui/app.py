@@ -190,9 +190,20 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             id="info-bar",
         )
 
+    @staticmethod
+    def _thinking_level_class(level: str) -> str:
+        return f"-thinking-{level}"
+
+    def _apply_thinking_level_style(self, level: str) -> None:
+        input_box = self.query_one("#input-box", InputBox)
+        for name in ("none", "minimal", "low", "medium", "high", "xhigh"):
+            input_box.remove_class(self._thinking_level_class(name))
+        input_box.add_class(self._thinking_level_class(level))
+
     def _apply_theme(self, theme_id: str) -> None:
         type(self).CSS = get_styles()
         self.refresh_css(animate=False)
+        self._apply_thinking_level_style(self._thinking_level)
 
     def _sync_slash_commands(self) -> None:
         input_box = self.query_one("#input-box", InputBox)
@@ -389,6 +400,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         self._model_provider = model_provider
         info_bar.set_model(self._model, model_provider)
         info_bar.set_thinking_level(self._thinking_level)
+        self._apply_thinking_level_style(self._thinking_level)
 
         if (
             (self._continue_recent or self._resume_session)
@@ -684,6 +696,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             self._session.set_thinking_level(new_level)
 
         info_bar.set_thinking_level(new_level)
+        self._apply_thinking_level_style(new_level)
 
         chat.show_status(f"Thinking level: {new_level}")
 

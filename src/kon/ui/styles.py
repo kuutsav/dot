@@ -210,6 +210,28 @@ Screen {{
     border-subtitle-color: {colors.dim};
 }}
 
+#input-box.-thinking-none,
+#input-box.-thinking-minimal,
+#input-box.-thinking-low {{
+    border-top: solid {colors.border};
+    border-bottom: solid {colors.border};
+}}
+
+#input-box.-thinking-medium {{
+    border-top: solid {colors.dim};
+    border-bottom: solid {colors.dim};
+}}
+
+#input-box.-thinking-high {{
+    border-top: solid {colors.accent};
+    border-bottom: solid {colors.accent};
+}}
+
+#input-box.-thinking-xhigh {{
+    border-top: solid {colors.badge.label};
+    border-bottom: solid {colors.badge.label};
+}}
+
 /* Completion list - between input and info bar */
 #completion-list {{
     height: auto;

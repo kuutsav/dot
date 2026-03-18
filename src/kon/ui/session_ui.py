@@ -42,6 +42,7 @@ class SessionUIMixin:
     # Methods from other mixins/main class
     def _get_provider_api_type(self, provider: BaseProvider) -> ApiType: ...
     def _create_provider(self, api_type: ApiType, config: ProviderConfig) -> BaseProvider: ...
+    def _apply_thinking_level_style(self, level: str) -> None: ...
 
     def _extract_text_content(self, content: str | list[TextContent | ImageContent]) -> str:
         if isinstance(content, str):
@@ -287,6 +288,7 @@ class SessionUIMixin:
             self._provider.set_thinking_level(thinking_level)
         self._thinking_level = thinking_level
         info_bar.set_thinking_level(thinking_level)
+        self._apply_thinking_level_style(thinking_level)
 
         await chat.remove_all_children()
 
