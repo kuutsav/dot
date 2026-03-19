@@ -78,12 +78,17 @@ class PermissionsConfig(BaseModel):
     mode: Literal["prompt", "auto"] = "prompt"
 
 
+class ToolsConfig(BaseModel):
+    extra: list[str] = []
+
+
 class ConfigSchema(BaseModel):
     meta: MetaConfig
     llm: LLMConfig
     ui: UIConfig
     compaction: CompactionConfig
     agent: AgentConfig
+    tools: ToolsConfig = ToolsConfig()
     permissions: PermissionsConfig
 
 
@@ -167,6 +172,10 @@ class Config:
     @property
     def permissions(self) -> PermissionsConfig:
         return self._parsed.permissions
+
+    @property
+    def tools(self) -> ToolsConfig:
+        return self._parsed.tools
 
     @property
     def binaries(self) -> _BinariesConfig:

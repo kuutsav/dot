@@ -45,7 +45,9 @@ from .tools import BaseTool
 from .turn import run_single_turn
 
 
-def build_system_prompt(cwd: str, context: Context | None = None) -> str:
+def build_system_prompt(
+    cwd: str, context: Context | None = None, tools: list[BaseTool] | None = None
+) -> str:
     now = datetime.now()
     date_time = now.strftime("%A, %B %d, %Y at %I:%M %p %Z").strip()
 
@@ -53,6 +55,11 @@ def build_system_prompt(cwd: str, context: Context | None = None) -> str:
         context = Context.load(cwd)
 
     prompt = kon_config.llm.system_prompt.content
+
+    if tools:
+        tool_names = {t.name for t in tools}
+        if tool_names & {"web_search", "web_fetch"}:
+            prompt += "\n\nUse web_search/web_fetch instead of curl/wget via bash."
 
     if context.agents_files:
         prompt += "\n\n" + formatted_agent_mds(context.agents_files)
@@ -95,7 +102,9 @@ class Agent:
         self.config = config or AgentConfig()
         self._cwd = cwd or os.getcwd()
         self._context = context or Context.load(self._cwd)
-        self._system_prompt = system_prompt or build_system_prompt(self._cwd, self._context)
+        self._system_prompt = system_prompt or build_system_prompt(
+            self._cwd, self._context, tools=tools
+        )
         self._run_usage = Usage()
 
     @property
@@ -108,7 +117,7 @@ class Agent:
 
     def reload_context(self) -> None:
         self._context = Context.load(self._cwd)
-        self._system_prompt = build_system_prompt(self._cwd, self._context)
+        self._system_prompt = build_system_prompt(self._cwd, self._context, tools=self.tools)
 
     @property
     def messages(self) -> list[Message]:

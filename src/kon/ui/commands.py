@@ -24,7 +24,6 @@ from ..llm import (
 )
 from ..session import MessageEntry, Session
 from ..themes import get_theme_options
-from ..tools import DEFAULT_TOOLS, get_tools
 from .chat import ChatLog
 from .clipboard import copy_to_clipboard
 from .floating_list import FloatingList, ListItem
@@ -51,6 +50,7 @@ class CommandsMixin:
     _agent: Any
     _is_running: bool
     _selection_mode: Any
+    _tools: list
 
     # Methods from App - declared for type checking
     if TYPE_CHECKING:
@@ -143,7 +143,10 @@ Keybindings:
   escape     - Cancel completion / interrupt agent
   ctrl+c     - Clear input (press twice to quit)
   ctrl+t     - Toggle thinking visibility
-  shift+tab  - Cycle thinking levels"""
+  shift+tab  - Cycle thinking levels
+
+Extra tools:
+  --extra-tools web_search,web_fetch  or  [tools] extra in ~/.kon/config.toml"""
         chat.add_info_message(help_text)
 
     def _clear_conversation(self) -> None:
@@ -716,7 +719,7 @@ Keybindings:
             return
 
         system_prompt = self._agent.system_prompt
-        tools = get_tools(DEFAULT_TOOLS)
+        tools = self._tools
 
         provider_name = self._provider.name if self._provider else "unknown"
 

@@ -58,7 +58,7 @@ from ..llm import (
 from ..loop import Agent
 from ..permissions import ApprovalResponse
 from ..session import Session
-from ..tools import DEFAULT_TOOLS, get_tool, get_tools
+from ..tools import DEFAULT_TOOLS, EXTRA_TOOLS, get_tool, get_tools
 from ..update_check import get_newer_pypi_version
 from .autocomplete import DEFAULT_COMMANDS, FilePathProvider, SlashCommand, SlashCommandProvider
 from .blocks import HandoffLinkBlock, LaunchWarning
@@ -131,6 +131,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         resume_session: str | None = None,
         continue_recent: bool = False,
         thinking_level: str | None = None,
+        extra_tools: list[str] | None = None,
     ):
         super().__init__()
         self.theme = "textual-ansi"
@@ -175,6 +176,16 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         self._update_notice_shown = False
         self._startup_complete = False
         self._launch_warnings: list[LaunchWarning] = []
+
+        cli_extra = extra_tools or []
+        merged = list(dict.fromkeys(config.tools.extra + cli_extra))
+        extra = [n for n in merged if n in EXTRA_TOOLS]
+        for name in merged:
+            if name not in EXTRA_TOOLS:
+                self._launch_warnings.append(
+                    LaunchWarning(message=f"Unknown extra tool: {name!r}", severity="warning")
+                )
+        self._tools = get_tools(DEFAULT_TOOLS + extra)
 
     def compose(self) -> ComposeResult:
         yield ChatLog(id="chat-log")
@@ -363,7 +374,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         if self._provider is not None and self._session is not None:
             self._agent = Agent(
                 provider=self._provider,
-                tools=get_tools(DEFAULT_TOOLS),
+                tools=self._tools,
                 session=self._session,
                 cwd=self._cwd,
             )
@@ -797,7 +808,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         if self._agent is None:
             self._agent = Agent(
                 provider=self._provider,
-                tools=get_tools(DEFAULT_TOOLS),
+                tools=self._tools,
                 session=self._session,
                 cwd=self._cwd,
             )
@@ -816,7 +827,7 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             model_info = get_model(self._model, self._model_provider)
             self._agent.provider = self._provider
             self._agent.session = self._session
-            self._agent.tools = get_tools(DEFAULT_TOOLS)
+            self._agent.tools = self._tools
             self._agent.config.context_window = model_info.context_window if model_info else None
             self._agent.config.max_output_tokens = model_info.max_tokens if model_info else None
 
@@ -1055,7 +1066,17 @@ def main():
         help="Resume a specific session by ID (full or unique prefix)",
     )
     parser.add_argument("--version", action="version", version=f"kon {VERSION}")
+    parser.add_argument(
+        "--extra-tools",
+        help="Comma-separated extra tools to enable (e.g. web_search,web_fetch)",
+    )
     args = parser.parse_args()
+
+    extra_tools = (
+        [t.strip() for t in args.extra_tools.split(",") if t.strip()]
+        if args.extra_tools
+        else None
+    )
 
     app = Kon(
         model=args.model,
@@ -1064,6 +1085,7 @@ def main():
         base_url=args.base_url,
         resume_session=args.resume_session,
         continue_recent=args.continue_recent,
+        extra_tools=extra_tools,
     )
     app.run()
 

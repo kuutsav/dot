@@ -11,6 +11,7 @@ from .write import WriteTool
 
 __all__ = [
     "DEFAULT_TOOLS",
+    "EXTRA_TOOLS",
     "BaseTool",
     "BashTool",
     "EditTool",
@@ -32,7 +33,8 @@ all_tools = [
 ]
 
 tools_by_name: dict[str, BaseTool] = {tool.name: tool for tool in all_tools}
-DEFAULT_TOOLS: list[str] = list(tools_by_name.keys())
+DEFAULT_TOOLS: list[str] = ["read", "edit", "write", "bash", "grep", "find"]
+EXTRA_TOOLS: list[str] = ["web_search", "web_fetch"]
 
 
 def get_tools(names: list[str]) -> list[BaseTool]:
