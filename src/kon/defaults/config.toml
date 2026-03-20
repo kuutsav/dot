@@ -41,4 +41,4 @@ extra = []
 theme = "gruvbox-dark"
 
 [permissions]
-mode = "prompt"   # "prompt" or "auto"
+mode = "prompt" # "prompt" or "auto"

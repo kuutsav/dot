@@ -4,8 +4,6 @@ import os
 
 from pydantic import BaseModel, Field
 
-from kon import config
-
 from ..core.types import ToolResult
 from ..tools_manager import ensure_tool
 from .base import BaseTool
@@ -38,11 +36,10 @@ class GrepTool(BaseTool):
     )
 
     def format_call(self, params: GrepParams) -> str:
-        accent = config.ui.colors.accent
         pattern = params.pattern.replace('"', '\\"')
-        parts = [f'[{accent}]"{pattern}"[/{accent}]']
+        parts = [f'"{pattern}"']
         if params.path:
-            parts.append(f"in [{accent}]{params.path}[/{accent}]")
+            parts.append(f"in {params.path}")
         if params.include:
             parts.append(f"--include={params.include}")
         return " ".join(parts)

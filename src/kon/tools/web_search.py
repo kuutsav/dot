@@ -3,8 +3,6 @@ import asyncio
 from ddgs import DDGS
 from pydantic import BaseModel, Field
 
-from kon import config
-
 from ..core.types import ToolResult
 from .base import BaseTool
 
@@ -27,9 +25,8 @@ class WebSearchTool(BaseTool):
     )
 
     def format_call(self, params: WebSearchParams) -> str:
-        accent = config.ui.colors.accent
         query = params.query.replace('"', '\\"')
-        return f'[{accent}]"{query}"[/{accent}]'
+        return f'"{query}"'
 
     async def execute(
         self, params: WebSearchParams, cancel_event: asyncio.Event | None = None
@@ -67,5 +64,5 @@ class WebSearchTool(BaseTool):
             lines.append("")
 
         result_text = "\n".join(lines).strip()
-        ui_summary = f"[dim]{len(results)} results[/dim]"
+        ui_summary = f"[dim]({len(results)} results)[/dim]"
         return ToolResult(success=True, result=result_text, ui_summary=ui_summary)

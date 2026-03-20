@@ -5,8 +5,6 @@ from pathlib import Path
 import aiofiles
 from pydantic import BaseModel, Field
 
-from kon import config
-
 from ..core.types import ImageContent
 from ..shared import shorten_path
 from ._read_image import is_image_file, read_and_process_image
@@ -43,12 +41,11 @@ class ReadTool(BaseTool):
     )
 
     def format_call(self, params: ReadParams) -> str:
-        accent = config.ui.colors.accent
-        path = f"[{accent}]{shorten_path(params.path)}[/{accent}]"
+        path = shorten_path(params.path)
         if params.offset or params.limit:
             start = params.offset or 1
             end = (start + params.limit - 1) if params.limit else "?"
-            return f"{path}[yellow]:{start}-{end}[/yellow]"
+            return f"{path}:{start}-{end}"
         return path
 
     async def read_file(self, file_path: Path, offset: int | None, limit: int | None) -> str:
