@@ -4,8 +4,12 @@ config_version = 3
 [llm]
 default_provider = "openai-codex" # "zhipu", "github-copilot", "openai-codex"
 default_model = "gpt-5.3-codex"
+# Optional API base URL override for the selected provider or local/self-hosted endpoint.
+# Leave empty to use the provider's default URL.
 default_base_url = ""
 default_thinking_level = "medium"
+# Abort a tool call if it stays idle for this long during a turn.
+# Helps prevent stalled tool executions from hanging the agent loop.
 tool_call_idle_timeout_seconds = 180
 
 [llm.system_prompt]
@@ -21,21 +25,28 @@ You help users by reading, searching, executing commands, editing code, and writ
   - Use grep to search file contents (NOT grep or rg via bash)
   - Use find to search for files by name/glob (NOT find or ls via bash)
 - Use bash for terminal operations (git, package managers, builds, tests, running scripts)
-- When summarizing your actions, output plain text directly DO NOT use cat or bash to display
-- Be concise in your responses
 - Show file paths clearly when working with files
-- Kon session logs are JSONL files in ~/.kon/sessions; if the user references recent sessions or a particular session, look there."""
+- Kon session logs are JSONL files in ~/.kon/sessions; if the user references recent sessions or a particular session, look there
+- When summarizing your actions, output plain text directly DO NOT use cat or bash to display
+- Be concise in your responses"""
 
 [compaction]
+# What kon should do after compacting history on context overflow.
+# "continue" keeps going with a synthetic continue prompt; "pause" stops after compaction.
 on_overflow = "continue" # "continue" or "pause"
+# Safety margin reserved before the model context window is treated as full.
+# Larger values make kon compact earlier.
 buffer_tokens = 20000
 
 [agent]
+# Maximum assistant/tool loop turns kon may use for a single user request.
+# Prevents runaway loops when the agent keeps calling tools or continuing.
 max_turns = 500
 default_context_window = 200000
 
 [tools]
-extra = []
+# Additional opt-in built-in tools to expose beyond the default tool set.
+extra = ["web_search", "web_fetch"]
 
 [ui]
 theme = "gruvbox-dark"
