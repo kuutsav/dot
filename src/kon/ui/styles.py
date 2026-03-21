@@ -30,7 +30,7 @@ Screen {{
     text-style: italic;
     padding: 0 1 0 1;
     margin: 1 0 0 1;
-    border-left: thick {colors.border};
+    border-left: outer {colors.border};
 }}
 
 .thinking-block.-hidden {{
@@ -116,7 +116,7 @@ Screen {{
 .tool-block.-approval {{
     background: transparent;
     color: {colors.dim};
-    border-left: thick {colors.accent};
+    border-left: outer {colors.accent};
     margin: 1 0 1 1;
     padding: 0 1 0 1;
 }}

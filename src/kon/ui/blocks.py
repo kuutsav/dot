@@ -11,7 +11,7 @@ from textual.widgets import Label, Static
 
 from kon import config
 
-from .formatting import format_markdown
+from .formatting import format_markdown, strip_markdown_for_collapsed_text
 
 _UPDATE_COMMAND = "uv tool upgrade kon-coding-agent"
 
@@ -97,7 +97,7 @@ class ThinkingBlock(_StreamingMarkdownMixin, Static):
     def _format_collapsed(self) -> Text:
         """Show only the first line with a truncation indicator."""
         lines = self._content.strip().split("\n")
-        first_line = lines[0].strip() if lines else ""
+        first_line = strip_markdown_for_collapsed_text(lines[0].strip()) if lines else ""
         style = f"{config.ui.colors.dim} italic"
         text = Text(first_line, style=style)
         if len(lines) > 1:

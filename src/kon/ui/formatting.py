@@ -133,6 +133,15 @@ def _strip_inline_code_ticks_in_headings(text: str) -> str:
     return "".join(processed)
 
 
+def strip_markdown_for_collapsed_text(text: str) -> str:
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    text = re.sub(r"__([^_]+)__", r"\1", text)
+    text = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"\1", text)
+    text = re.sub(r"(?<!_)_([^_]+)_(?!_)", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    return text
+
+
 def format_markdown(text: str, width: int | None = None) -> Text:
     sanitized = _strip_inline_code_ticks_in_headings(text)
     md = CustomMarkdown(sanitized)
