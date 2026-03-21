@@ -66,7 +66,7 @@ class LLMConfig(BaseModel):
     default_base_url: str = ""
     default_thinking_level: str
     system_prompt: SystemPromptConfig
-    tool_call_idle_timeout_seconds: float = 60
+    tool_call_idle_timeout_seconds: float = 180
 
 
 class CompactionConfig(BaseModel):

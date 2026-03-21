@@ -12,8 +12,8 @@ Streams chunks from the LLM and yields typed events as they arrive:
 Tool execution strategy:
 - All tool calls are collected during streaming
 - After streaming completes, all ToolEndEvents are yielded first (UI shows pending state)
-- Each tool is permission-checked; safe read-only tools auto-approve, mutating tools
-  yield ToolApprovalEvent and await user approval before executing
+- Each tool is permission-checked; safe read-only tools auto-approve while
+  mutating tools yield ToolApprovalEvent and await user approval before executing
 - Then ToolResultEvent is yielded with the result (or denial reason)
 
 Cancellation handling:
@@ -77,7 +77,6 @@ from .permissions import ApprovalResponse, PermissionDecision, check_permission
 from .tools import BaseTool, get_tool, get_tool_definitions
 
 _STREAM_EXHAUSTED = object()
-_DEFAULT_TOOL_CALL_IDLE_TIMEOUT_SECONDS = 60.0
 _TOOL_ARGS_TOKEN_DISPLAY_THRESHOLD = 20
 _TOOL_ARGS_TOKEN_CHUNK_UPDATE_INTERVAL = 4
 
@@ -114,11 +113,9 @@ async def _safe_anext(aiter):
         return _STREAM_EXHAUSTED
 
 
-def _get_tool_call_idle_timeout_seconds() -> float | None:
+def tool_call_idle_timeout_seconds() -> float | None:
     timeout = kon_config.llm.tool_call_idle_timeout_seconds
-    if timeout <= 0:
-        return None
-    return timeout or _DEFAULT_TOOL_CALL_IDLE_TIMEOUT_SECONDS
+    return None if timeout <= 0 else timeout
 
 
 def _create_skipped_tool_result(
@@ -327,7 +324,7 @@ async def run_single_turn(
     # not just when the next chunk happens to arrive from the API.
     stream_iter = stream.__aiter__()
     cancel_task = asyncio.create_task(cancel_event.wait()) if cancel_event else None
-    tool_call_idle_timeout_seconds = _get_tool_call_idle_timeout_seconds()
+    tool_call_timeout = tool_call_idle_timeout_seconds()
 
     while True:
         if cancel_event and cancel_event.is_set():
@@ -337,9 +334,9 @@ async def run_single_turn(
 
         next_task = asyncio.create_task(_safe_anext(stream_iter))
         chunk_timeout = (
-            tool_call_idle_timeout_seconds
+            tool_call_timeout
             if (
-                tool_call_idle_timeout_seconds is not None
+                tool_call_timeout is not None
                 and (current_state == StreamState.TOOL_CALL or pending_tool_calls)
             )
             else None

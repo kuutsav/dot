@@ -1,10 +1,9 @@
 """
 Run the agent loop and stream events for the UI.
 
-Each turn runs `run_single_turn()`, forwards turn/tool events immediately,
-persists assistant/tool messages to the session, and decides whether to
-continue. After every turn, overflow compaction may run and emit its own
-start/end events so the UI can reflect that state in real time.
+Each turn runs `run_single_turn()`, forwards turn/tool events immediately, persists assistant/tool
+messages to the session, and decides whether to continue. After every turn, overflow compaction
+may run and emit its own start/end events so the UI can reflect that state in real time.
 
 The loop ends on stop/error/interruption, compaction pause mode, or max turns.
 """
@@ -59,7 +58,7 @@ def build_system_prompt(
     if tools:
         tool_names = {t.name for t in tools}
         if tool_names & {"web_search", "web_fetch"}:
-            prompt += "\n\nUse web_search/web_fetch instead of curl/wget via bash."
+            prompt += "\n- Use web_search/web_fetch instead of curl/wget via bash"
 
     if context.agents_files:
         prompt += "\n\n" + formatted_agent_mds(context.agents_files)
@@ -72,7 +71,7 @@ def build_system_prompt(
         if git_context:
             prompt += "\n\n" + git_context
 
-    prompt += f"\n\nCurrent date and time: {date_time}"
+    prompt += f"\n\n# Env\n\nCurrent date and time: {date_time}"
     prompt += f"\nCurrent working directory: {cwd}"
 
     return prompt
@@ -80,7 +79,6 @@ def build_system_prompt(
 
 @dataclass
 class AgentConfig:
-    max_turns: int | None = None
     context_window: int | None = None
     max_output_tokens: int | None = None
 
@@ -155,11 +153,7 @@ class Agent:
         system_prompt = self._system_prompt
 
         try:
-            max_turns = (
-                self.config.max_turns
-                if self.config.max_turns is not None
-                else kon_config.agent.max_turns
-            )
+            max_turns = kon_config.agent.max_turns
             while turn < max_turns:
                 if cancel_event and cancel_event.is_set():
                     was_interrupted = True

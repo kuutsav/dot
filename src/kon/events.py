@@ -190,7 +190,7 @@ class InterruptedEvent:
 # Union Types
 # =================================================================================================
 
-# Events yielded by run_single_turn (loop level)
+# Events yielded by run_single_turn (turn.py)
 StreamEvent = (
     ThinkingStartEvent
     | ThinkingDeltaEvent
@@ -211,7 +211,7 @@ StreamEvent = (
     | InterruptedEvent
 )
 
-# All events yielded by Agent.run()
+# All events yielded by Agent.run() (loop.py)
 Event = (
     AgentStartEvent
     | AgentEndEvent

@@ -25,7 +25,7 @@ from kon.events import (
     WarningEvent,
 )
 from kon.llm.providers import MockProvider
-from kon.loop import Agent, AgentConfig
+from kon.loop import Agent
 from kon.session import Session
 from kon.tools import BashTool, ReadTool
 from kon.turn import run_single_turn
@@ -46,15 +46,24 @@ def sample_messages():
     return [UserMessage(content="Test query")]
 
 
+@pytest.fixture
+def max_turns_one():
+    set_config(Config({"agent": {"max_turns": 1}}))
+    try:
+        yield
+    finally:
+        reset_config()
+
+
 # ============================================================================
 # Tests for Agent.run() - high-level agent orchestration
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_agent_default_scenario(tools, in_memory_session):
+async def test_agent_default_scenario(tools, in_memory_session, max_turns_one):
     provider = MockProvider(scenario="default")
-    agent = Agent(provider, tools, in_memory_session, config=AgentConfig(max_turns=1))
+    agent = Agent(provider, tools, in_memory_session)
     events = []
 
     async for event in agent.run("Test"):
@@ -102,9 +111,9 @@ async def test_agent_simple_text_scenario(tools, in_memory_session):
 
 
 @pytest.mark.asyncio
-async def test_agent_max_turns_limit(tools, in_memory_session):
+async def test_agent_max_turns_limit(tools, in_memory_session, max_turns_one):
     provider = MockProvider(scenario="default")
-    agent = Agent(provider, tools, in_memory_session, config=AgentConfig(max_turns=1))
+    agent = Agent(provider, tools, in_memory_session)
     events = []
 
     async for event in agent.run("Test"):
@@ -122,9 +131,9 @@ async def test_agent_max_turns_limit(tools, in_memory_session):
 
 
 @pytest.mark.asyncio
-async def test_agent_usage_tracking(tools, in_memory_session):
+async def test_agent_usage_tracking(tools, in_memory_session, max_turns_one):
     provider = MockProvider(scenario="default")
-    agent = Agent(provider, tools, in_memory_session, config=AgentConfig(max_turns=1))
+    agent = Agent(provider, tools, in_memory_session)
     events = []
 
     async for event in agent.run("Track usage"):
@@ -140,15 +149,9 @@ async def test_agent_usage_tracking(tools, in_memory_session):
 
 
 @pytest.mark.asyncio
-async def test_agent_system_prompt(tools, in_memory_session):
+async def test_agent_system_prompt(tools, in_memory_session, max_turns_one):
     provider = MockProvider(scenario="default")
-    agent = Agent(
-        provider,
-        tools,
-        in_memory_session,
-        system_prompt="Custom system prompt",
-        config=AgentConfig(max_turns=1),
-    )
+    agent = Agent(provider, tools, in_memory_session, system_prompt="Custom system prompt")
 
     events = []
     async for event in agent.run("Test"):
@@ -160,9 +163,9 @@ async def test_agent_system_prompt(tools, in_memory_session):
 
 
 @pytest.mark.asyncio
-async def test_agent_with_thinking(tools, in_memory_session):
+async def test_agent_with_thinking(tools, in_memory_session, max_turns_one):
     provider = MockProvider(scenario="default")
-    agent = Agent(provider, tools, in_memory_session, config=AgentConfig(max_turns=1))
+    agent = Agent(provider, tools, in_memory_session)
     events = []
 
     async for event in agent.run("Think and answer"):
