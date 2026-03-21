@@ -55,7 +55,7 @@ from ..llm import (
     is_openai_logged_in,
     resolve_provider_api_type,
 )
-from ..loop import Agent
+from ..loop import Agent, build_system_prompt
 from ..metrics import append_run_metric
 from ..permissions import ApprovalResponse
 from ..session import Session
@@ -303,7 +303,13 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
                 self._thinking_level = self._session.thinking_level
         elif self._continue_recent:
             try:
-                self._session = Session.continue_recent(self._cwd)
+                self._session = Session.continue_recent(
+                    self._cwd,
+                    provider=self._model_provider,
+                    model_id=self._model,
+                    thinking_level=self._thinking_level,
+                    system_prompt=build_system_prompt(self._cwd, tools=self._tools),
+                )
             except Exception as e:
                 self._add_launch_warning(str(e), severity="error")
                 chat = self.query_one("#chat-log", ChatLog)
@@ -364,11 +370,13 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
                 else (self._provider.name if self._provider else self._model_provider)
             )
             self._model_provider = model_provider
+            system_prompt = build_system_prompt(self._cwd, tools=self._tools)
             self._session = Session.create(
                 self._cwd,
                 provider=model_provider,
                 model_id=self._model,
                 thinking_level=self._thinking_level,
+                system_prompt=system_prompt,
             )
             if model_provider:
                 self._session.append_model_change(model_provider, self._model, base_url)
@@ -376,8 +384,15 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
         # Create Agent once — it owns context + system prompt (stable across queries
         # for prompt-prefix caching on llama-server and similar engines).
         if self._provider is not None and self._session is not None:
+            system_prompt = self._session.system_prompt or build_system_prompt(
+                self._cwd, tools=self._tools
+            )
             self._agent = Agent(
-                provider=self._provider, tools=self._tools, session=self._session, cwd=self._cwd
+                provider=self._provider,
+                tools=self._tools,
+                session=self._session,
+                cwd=self._cwd,
+                system_prompt=system_prompt,
             )
 
         self._sync_slash_commands()
@@ -807,8 +822,15 @@ class Kon(CommandsMixin, SessionUIMixin, App[None]):
             return
 
         if self._agent is None:
+            system_prompt = self._session.system_prompt or build_system_prompt(
+                self._cwd, tools=self._tools
+            )
             self._agent = Agent(
-                provider=self._provider, tools=self._tools, session=self._session, cwd=self._cwd
+                provider=self._provider,
+                tools=self._tools,
+                session=self._session,
+                cwd=self._cwd,
+                system_prompt=system_prompt,
             )
 
         current_prompt = prompt

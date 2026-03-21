@@ -22,6 +22,7 @@ from ..llm import (
     is_openai_logged_in,
     openai_login,
 )
+from ..loop import build_system_prompt
 from ..session import MessageEntry, Session
 from ..themes import get_theme_options
 from .chat import ChatLog
@@ -151,25 +152,7 @@ Extra tools:
 
     def _clear_conversation(self) -> None:
         if self._session:
-            selected_model = get_model(self._model, self._model_provider)
-            model_provider = (
-                selected_model.provider
-                if selected_model
-                else (self._provider.name if self._provider else "openai")
-            )
-            self._model_provider = model_provider
-            self._session = Session.create(
-                self._cwd,
-                provider=model_provider,
-                model_id=self._model,
-                thinking_level=self._thinking_level,
-            )
-            model_base_url = (
-                selected_model.base_url
-                if selected_model
-                else (self._provider.config.base_url if self._provider else None)
-            )
-            self._session.append_model_change(model_provider, self._model, model_base_url)
+            self._session = self._create_new_session()
             if self._provider:
                 self._provider.config.session_id = self._session.id
             info_bar = self.query_one("#info-bar", InfoBar)
@@ -343,11 +326,13 @@ Extra tools:
             else (self._provider.name if self._provider else "openai")
         )
         self._model_provider = model_provider
+        system_prompt = build_system_prompt(self._cwd, tools=self._tools)
         session = Session.create(
             self._cwd,
             provider=model_provider,
             model_id=self._model,
             thinking_level=self._thinking_level,
+            system_prompt=system_prompt,
         )
         model_base_url = (
             selected_model.base_url

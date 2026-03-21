@@ -7,6 +7,7 @@ from kon.core.handoff import HANDOFF_PROMPT_TEMPLATE, generate_handoff_prompt
 from kon.core.types import AssistantMessage, StopReason, TextContent, TextPart, UserMessage
 from kon.llm.base import LLMStream
 from kon.llm.providers.mock import MockProvider
+from kon.loop import build_system_prompt
 from kon.session import CustomMessageEntry, Session
 from kon.ui.commands import CommandsMixin
 
@@ -62,6 +63,7 @@ class _TestCommandsApp(CommandsMixin):
             reload_context=lambda: None,
         )
         self._is_running = False
+        self._tools = []
         self._chat = chat
         self._input_box = input_box
         self._info_bar = info_bar or _FakeInfoBar()
@@ -243,3 +245,40 @@ def test_clear_conversation_resets_file_change_stats():
     app._clear_conversation()
 
     assert info_bar.file_changes_calls[-1] == {}
+
+
+def test_clear_conversation_creates_session_with_persisted_system_prompt(monkeypatch):
+    captured: dict[str, str | None] = {"system_prompt": None}
+    original_create = Session.create
+
+    def _fake_create(
+        cwd,
+        persist=True,
+        provider=None,
+        model_id=None,
+        thinking_level="medium",
+        system_prompt=None,
+    ):
+        captured["system_prompt"] = system_prompt
+        return original_create(
+            cwd,
+            persist=persist,
+            provider=provider,
+            model_id=model_id,
+            thinking_level=thinking_level,
+            system_prompt=system_prompt,
+        )
+
+    monkeypatch.setattr("kon.ui.commands.Session.create", _fake_create)
+
+    session = Session.in_memory("/test/project", provider="mock", model_id="mock-model")
+    provider = MockProvider()
+    chat = _FakeChat()
+    input_box = _FakeInput()
+    app = _TestCommandsApp(session=session, provider=provider, chat=chat, input_box=input_box)
+
+    app._clear_conversation()
+
+    assert app._session is not None
+    assert captured["system_prompt"] == build_system_prompt("/test/project", tools=[])
+    assert app._session.system_prompt == captured["system_prompt"]

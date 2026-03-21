@@ -5,7 +5,8 @@ Sessions are stored as append-only JSONL files. Each line is a JSON entry
 with a type field. The first line is always the session header.
 
 Structure:
-    {"type": "header", "id": "...", "version": 1, "timestamp": "...", "cwd": "..."}
+    {"type": "header", "id": "...", "version": 1, "timestamp": "...",
+     "cwd": "...", "system_prompt": "..."}
     {"type": "message", "id": "...", "parent_id": "...", "timestamp": "...", "message": {...}}
     {"type": "message", "id": "...", "parent_id": "...", "timestamp": "...", "message": {...}}
     ...
@@ -38,6 +39,7 @@ class SessionHeader(BaseModel):
     id: str
     timestamp: str
     cwd: str
+    system_prompt: str | None = None
 
 
 class EntryBase(BaseModel):
@@ -179,6 +181,10 @@ class Session:
     @property
     def session_file(self) -> Path | None:
         return self._session_file
+
+    @property
+    def system_prompt(self) -> str | None:
+        return self._header.system_prompt if self._header else None
 
     @property
     def leaf_id(self) -> str | None:
@@ -430,6 +436,7 @@ class Session:
         provider: str | None = None,
         model_id: str | None = None,
         thinking_level: str = "medium",
+        system_prompt: str | None = None,
     ) -> "Session":
         session_id = str(uuid.uuid4())
         timestamp = _now_iso()
@@ -442,7 +449,9 @@ class Session:
             initial_model_id=model_id,
             initial_thinking_level=thinking_level,
         )
-        session._header = SessionHeader(id=session_id, timestamp=timestamp, cwd=cwd)
+        session._header = SessionHeader(
+            id=session_id, timestamp=timestamp, cwd=cwd, system_prompt=system_prompt
+        )
 
         if persist:
             file_timestamp = datetime.fromisoformat(timestamp).strftime("%Y-%m-%dT%H-%M-%S")
@@ -502,12 +511,25 @@ class Session:
         return session
 
     @classmethod
-    def continue_recent(cls, cwd: str) -> "Session":
+    def continue_recent(
+        cls,
+        cwd: str,
+        provider: str | None = None,
+        model_id: str | None = None,
+        thinking_level: str = "medium",
+        system_prompt: str | None = None,
+    ) -> "Session":
         sessions_dir = cls.get_sessions_dir(cwd)
 
         jsonl_files = list(sessions_dir.glob("*.jsonl"))
         if not jsonl_files:
-            return cls.create(cwd)
+            return cls.create(
+                cwd,
+                provider=provider,
+                model_id=model_id,
+                thinking_level=thinking_level,
+                system_prompt=system_prompt,
+            )
 
         most_recent = max(jsonl_files, key=lambda p: p.stat().st_mtime)
         return cls.load(most_recent)
@@ -631,7 +653,13 @@ class Session:
         provider: str | None = None,
         model_id: str | None = None,
         thinking_level: str = "medium",
+        system_prompt: str | None = None,
     ) -> "Session":
         return cls.create(
-            cwd, persist=False, provider=provider, model_id=model_id, thinking_level=thinking_level
+            cwd,
+            persist=False,
+            provider=provider,
+            model_id=model_id,
+            thinking_level=thinking_level,
+            system_prompt=system_prompt,
         )

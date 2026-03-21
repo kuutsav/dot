@@ -49,12 +49,12 @@ def test_on_mount_continue_recent_error_shows_launch_warning(fake_chat, monkeypa
 
     app.run_worker = _run_worker  # type: ignore[method-assign]
 
-    monkeypatch.setattr(
-        "kon.ui.app.Session.continue_recent",
-        lambda cwd: (_ for _ in ()).throw(
-            ValueError("Invalid session file (no header): /tmp/bad.jsonl")
-        ),
-    )
+    def _fail_continue_recent(
+        cwd, provider=None, model_id=None, thinking_level="medium", system_prompt=None
+    ):
+        raise ValueError("Invalid session file (no header): /tmp/bad.jsonl")
+
+    monkeypatch.setattr("kon.ui.app.Session.continue_recent", _fail_continue_recent)
 
     app.on_mount()
 

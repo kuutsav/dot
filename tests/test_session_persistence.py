@@ -52,7 +52,7 @@ def test_round_trip_basic_messages(tmp_path, user_message, assistant_message, mo
     monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
     # Create session
-    session = Session.create("/test/project")
+    session = Session.create("/test/project", system_prompt="test system prompt")
 
     # Append messages
     msg1_id = session.append_message(user_message)
@@ -72,6 +72,7 @@ def test_round_trip_basic_messages(tmp_path, user_message, assistant_message, mo
     # Verify session metadata
     assert loaded_session.id == session.id
     assert loaded_session.cwd == session.cwd
+    assert loaded_session.system_prompt == "test system prompt"
 
     # Verify messages
     assert len(loaded_session.messages) == 2
@@ -350,6 +351,7 @@ def test_round_trip_session_file_format(tmp_path, monkeypatch):
     assert header_data["type"] == "header"
     assert "id" in header_data
     assert "timestamp" in header_data
+    assert header_data["system_prompt"] is None
 
     # Remaining lines should be entries
     for line in lines[1:]:
@@ -525,6 +527,20 @@ def test_continue_by_id_unique_prefix_match(tmp_path, monkeypatch):
     assert resumed.id == session.id
 
 
+def test_load_old_session_without_system_prompt(tmp_path):
+    path = tmp_path / "old-session.jsonl"
+    path.write_text(
+        '{"type":"header","version":1,"id":"old-session","timestamp":"2024-01-01T00:00:00+00:00","cwd":"/test/project"}\n'
+        '{"type":"message","id":"msg-1","parent_id":null,"timestamp":"2024-01-01T00:00:01+00:00","message":{"role":"assistant","content":[{"type":"text","text":"Response"}],"stop_reason":"stop"}}\n'
+    )
+
+    loaded = Session.load(path)
+
+    assert loaded.id == "old-session"
+    assert loaded.system_prompt is None
+    assert len(loaded.messages) == 1
+
+
 def test_ensure_persisted_writes_session_without_assistant(tmp_path, monkeypatch):
     monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
 
@@ -582,6 +598,22 @@ def test_continue_by_id_not_found(tmp_path, monkeypatch):
 
     with pytest.raises(FileNotFoundError):
         Session.continue_by_id("/test/project", "does-not-exist")
+
+
+def test_continue_recent_uses_system_prompt_for_new_session(tmp_path, monkeypatch):
+    monkeypatch.setattr("kon.session.Session.get_sessions_dir", lambda cwd: tmp_path)
+
+    session = Session.continue_recent(
+        "/test/project",
+        provider="openai",
+        model_id="gpt-4",
+        thinking_level="high",
+        system_prompt="persisted system prompt",
+    )
+
+    assert session.system_prompt == "persisted system prompt"
+    assert session.model == ("openai", "gpt-4", None)
+    assert session.thinking_level == "high"
 
 
 def test_extract_preview_from_skill_trigger_message():
