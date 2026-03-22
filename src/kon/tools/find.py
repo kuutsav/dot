@@ -5,7 +5,13 @@ from pydantic import BaseModel, Field
 
 from ..core.types import ToolResult
 from ..tools_manager import ensure_tool
-from ._tool_utils import ToolCancelledError, communicate_or_cancel, truncate_lines_by_bytes
+from ._tool_utils import (
+    ToolCancelledError,
+    communicate_or_cancel,
+    shorten_path,
+    truncate_lines_by_bytes,
+    truncate_text,
+)
 from .base import BaseTool
 
 MAX_RESULTS = 100
@@ -37,8 +43,9 @@ class FindTool(BaseTool):
         pattern = params.pattern.replace('"', '\\"')
         parts = [f'"{pattern}"']
         if params.path:
-            parts.append(f"in {params.path}")
-        return " ".join(parts)
+            parts.append(f"in {shorten_path(params.path)}")
+        message = " ".join(parts)
+        return truncate_text(message)
 
     async def execute(
         self, params: FindParams, cancel_event: asyncio.Event | None = None

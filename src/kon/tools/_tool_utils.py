@@ -83,6 +83,10 @@ def shorten_path(path: str) -> str:
     return path
 
 
+def truncate_text(text: str, n: int = 80) -> str:
+    return text[:77] + "..." if len(text) > n else text
+
+
 def truncate_lines_by_bytes(
     lines: list[str], max_output_bytes: int, marker: str = "[output truncated]"
 ) -> tuple[str, bool]:

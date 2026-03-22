@@ -1,20 +1,15 @@
 from kon import config
-from kon.tools.edit import format_diff_display, truncate_diff_line
+from kon.tools.edit import format_diff_display
 
 
-def test_truncate_diff_line_does_not_truncate_short_line() -> None:
-    line = "+2 short line"
-    assert truncate_diff_line(line, max_chars=90) == line
+def test_format_diff_display_short_lines_not_truncated() -> None:
+    short = "+2 short line"
+    display = format_diff_display(short)
+    assert "..." not in display
+    assert "short line" in display
 
 
-def test_truncate_diff_line_truncates_long_line_with_ellipsis() -> None:
-    line = "+2 " + "x" * 200
-    truncated = truncate_diff_line(line, max_chars=90)
-    assert len(truncated) == 90
-    assert truncated.endswith("...")
-
-
-def test_format_diff_display_truncates_and_keeps_color_markup() -> None:
+def test_format_diff_display_truncates_long_lines() -> None:
     long_added = "+2 " + "x" * 200
     long_removed = "-2 " + "y" * 200
 

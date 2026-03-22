@@ -6,7 +6,7 @@ from trafilatura import extract, fetch_url
 from trafilatura.settings import DEFAULT_CONFIG
 
 from ..core.types import ToolResult
-from ._tool_utils import ToolCancelledError, await_task_or_cancel
+from ._tool_utils import ToolCancelledError, await_task_or_cancel, truncate_text
 from .base import BaseTool
 
 MAX_CHARS = 80_000
@@ -33,8 +33,7 @@ class WebFetchTool(BaseTool):
     )
 
     def format_call(self, params: WebFetchParams) -> str:
-        url = params.url
-        return url[:77] + "..." if len(url) > 80 else url
+        return truncate_text(params.url)
 
     async def execute(
         self, params: WebFetchParams, cancel_event: asyncio.Event | None = None

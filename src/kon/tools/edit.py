@@ -131,14 +131,6 @@ def generate_diff(
     return "\n".join(output), added, removed
 
 
-def truncate_diff_line(line: str, max_chars: int = 105) -> str:
-    if len(line) <= max_chars:
-        return line
-    if max_chars <= 3:
-        return "." * max_chars
-    return f"{line[: max_chars - 3]}..."
-
-
 def format_diff_display(diff: str) -> str:
     colors = config.ui.colors
     lines = diff.split("\n")
@@ -148,7 +140,7 @@ def format_diff_display(diff: str) -> str:
         if not line:
             continue
 
-        truncated = truncate_diff_line(line)
+        truncated = line[:102] + "..." if len(line) > 105 else line
         escaped = truncated.replace("[", "\\[")
 
         if line.startswith("-"):
