@@ -414,13 +414,19 @@ class StatusLine(Horizontal):
 
     def show_exit_hint(self) -> None:
         self._show_exit_hint = True
+        muted_color = config.ui.colors.muted
         dim_color = config.ui.colors.dim
-        text = Text("ctrl+c again to exit", style=dim_color)
+        text = Text()
+        text.append("ctrl+c", style=muted_color)
+        text.append(" again to exit", style=dim_color)
         self.query_one("#exit-hint", Label).update(text)
 
     def show_delete_session_hint(self) -> None:
+        muted_color = config.ui.colors.muted
         dim_color = config.ui.colors.dim
-        text = Text("ctrl+d again to delete session", style=dim_color)
+        text = Text()
+        text.append("ctrl+d", style=muted_color)
+        text.append(" again to delete session", style=dim_color)
         self.query_one("#exit-hint", Label).update(text)
 
     def hide_exit_hint(self) -> None:
